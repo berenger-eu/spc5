@@ -781,7 +781,7 @@ inline void SPC5_1rVc_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
 #ifdef SPLIT_NUMA
 template <>
-inline void SPC5_1rVc_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const double x[], double y[],
+inline void SPC5_1rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_1rVc_WT);
     const int numThreads = int(threadsVecs.size());
@@ -801,7 +801,7 @@ inline void SPC5_1rVc_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const dou
 }
 
 template <>
-inline void SPC5_1rVc_Spmv_omp<float>(const SPC5Mat<float>& /*mat*/, const float x[], float y[],
+inline void SPC5_1rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
                                   const std::vector<ThreadInterval<float>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_1rVc_WT);
     const int numThreads = int(threadsVecs.size());
@@ -948,7 +948,7 @@ inline void SPC5_2rV2c_wt_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueTyp
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
 #ifdef SPLIT_NUMA
 template <>
-inline void SPC5_2rV2c_wt_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const double x[], double y[],
+inline void SPC5_2rV2c_wt_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT);
     const int numThreads = int(threadsVecs.size());
@@ -968,7 +968,7 @@ inline void SPC5_2rV2c_wt_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const
 }
 
 template <>
-inline void SPC5_2rV2c_wt_Spmv_omp<float>(const SPC5Mat<float>& /*mat*/, const float x[], float y[],
+inline void SPC5_2rV2c_wt_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
                                   const std::vector<ThreadInterval<float>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT);
     const int numThreads = int(threadsVecs.size());
@@ -1115,7 +1115,7 @@ inline void SPC5_2rV2c_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
 #ifdef SPLIT_NUMA
 template <>
-inline void SPC5_2rV2c_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const double x[], double y[],
+inline void SPC5_2rV2c_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rV2c);
     const int numThreads = int(threadsVecs.size());
@@ -1135,7 +1135,7 @@ inline void SPC5_2rV2c_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const do
 }
 
 template <>
-inline void SPC5_2rV2c_Spmv_omp<float>(const SPC5Mat<float>& /*mat*/, const float x[], float y[],
+inline void SPC5_2rV2c_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
                                   const std::vector<ThreadInterval<float>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rV2c);
     const int numThreads = int(threadsVecs.size());
@@ -1280,7 +1280,7 @@ inline void SPC5_2rVc_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
 #ifdef SPLIT_NUMA
 template <>
-inline void SPC5_2rVc_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const double x[], double y[],
+inline void SPC5_2rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rVc);
     const int numThreads = int(threadsVecs.size());
@@ -1300,7 +1300,7 @@ inline void SPC5_2rVc_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const dou
 }
 
 template <>
-inline void SPC5_2rVc_Spmv_omp<float>(const SPC5Mat<float>& /*mat*/, const float x[], float y[],
+inline void SPC5_2rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
                                   const std::vector<ThreadInterval<float>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rVc);
     const int numThreads = int(threadsVecs.size());
@@ -1445,7 +1445,7 @@ inline void SPC5_4rV2c_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
 #ifdef SPLIT_NUMA
 template <>
-inline void SPC5_4rV2c_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const double x[], double y[],
+inline void SPC5_4rV2c_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_4rV2c);
     const int numThreads = int(threadsVecs.size());
@@ -1465,7 +1465,7 @@ inline void SPC5_4rV2c_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const do
 }
 
 template <>
-inline void SPC5_4rV2c_Spmv_omp<float>(const SPC5Mat<float>& /*mat*/, const float x[], float y[],
+inline void SPC5_4rV2c_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
                                   const std::vector<ThreadInterval<float>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_4rV2c);
     const int numThreads = int(threadsVecs.size());
@@ -1609,7 +1609,7 @@ inline void SPC5_4rVc_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
 #ifdef SPLIT_NUMA
 template <>
-inline void SPC5_4rVc_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const double x[], double y[],
+inline void SPC5_4rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_4rVc);
     const int numThreads = int(threadsVecs.size());
@@ -1629,7 +1629,7 @@ inline void SPC5_4rVc_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const dou
 }
 
 template <>
-inline void SPC5_4rVc_Spmv_omp<float>(const SPC5Mat<float>& /*mat*/, const float x[], float y[],
+inline void SPC5_4rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
                                   const std::vector<ThreadInterval<float>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_4rVc);
     const int numThreads = int(threadsVecs.size());
@@ -1773,7 +1773,7 @@ inline void SPC5_8rV2c_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
 #ifdef SPLIT_NUMA
 template <>
-inline void SPC5_8rV2c_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const double x[], double y[],
+inline void SPC5_8rV2c_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rV2c);
     const int numThreads = int(threadsVecs.size());
@@ -1793,7 +1793,7 @@ inline void SPC5_8rV2c_Spmv_omp<double>(const SPC5Mat<double>& /*mat*/, const do
 }
 
 template <>
-inline void SPC5_8rV2c_Spmv_omp<float>(const SPC5Mat<float>& /*mat*/, const float x[], float y[],
+inline void SPC5_8rV2c_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
                                   const std::vector<ThreadInterval<float>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rV2c);
     const int numThreads = int(threadsVecs.size());
