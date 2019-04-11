@@ -5,7 +5,7 @@
 This package contains function to compute the SpMV on AVX-512-based architectures (KNL, SKL, CNL).
 It comes with different storages and kernels each being more or less adapted to the matrices shapes.
 
-We refer to the related paper *Computing the Sparse Matrix Vector Product using Block-Based Kernels Without Zero Padding on Processors with AVX-512 Instructions* (currently under review but available on https://arxiv.org/abs/1801.01134 ), and we will appreciate that any use or reference to our work points to this paper for citation.
+We refer to the related paper *Computing the Sparse Matrix Vector Product using Block-Based Kernels Without Zero Padding on Processors with AVX-512 Instructions* (published in PeerJ CS https://peerj.com/articles/cs-151/ ), and we will appreciate that any use or reference to our work points to this paper for citation.
 
 SPC5 is under MIT licence.
 
