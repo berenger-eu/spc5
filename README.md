@@ -1,5 +1,7 @@
 # SPC5
 
+The official repository is https://gitlab.inria.fr/bramas/spc5
+
 ## Overview
 
 This package contains function to compute the SpMV on AVX-512-based architectures (KNL, SKL, CNL).
