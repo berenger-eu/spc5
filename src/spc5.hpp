@@ -545,10 +545,10 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
         const int nbValues = (omp_get_thread_num()+1 != nbThreads ? intervals[omp_get_thread_num()+1].valuesOffset : idxVal)
                 - intervals[omp_get_thread_num()].valuesOffset;
 
-        intervals[omp_get_thread_num()].threadValues.reset(new double[nbValues]());
+        intervals[omp_get_thread_num()].threadValues.reset(new ValueType[nbValues]());
         memcpy(intervals[omp_get_thread_num()].threadValues.get(),
                 mat.values.get()+intervals[omp_get_thread_num()].valuesOffset,
-                sizeof(double)*nbValues);
+                sizeof(ValueType)*nbValues);
 #endif
     }
 
@@ -628,10 +628,10 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rV2c_threadsplit(const S
         const int nbValues = (omp_get_thread_num()+1 != nbThreads ? intervals[omp_get_thread_num()+1].valuesOffset : idxVal)
                 - intervals[omp_get_thread_num()].valuesOffset;
 
-        intervals[omp_get_thread_num()].threadValues.reset(new double[nbValues]());
+        intervals[omp_get_thread_num()].threadValues.reset(new ValueType[nbValues]());
         memcpy(intervals[omp_get_thread_num()].threadValues.get(),
                 mat.values.get()+intervals[omp_get_thread_num()].valuesOffset,
-                sizeof(double)*nbValues);
+                sizeof(ValueType)*nbValues);
 #endif
     }
 
