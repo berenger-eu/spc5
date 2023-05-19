@@ -603,68 +603,70 @@ int main(int argc, char** argv){
         std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
     }
 #ifdef _OPENMP
-    std::cout << "===================================================" << std::endl;
-    std::cout << "Openmp is enabled with " << omp_get_max_threads() << " threads per default" << std::endl;
-    {
-        std::cout << "Estimate for omp: " << nbRows << std::endl;
-        SPC5Mat<ValueType> csr = COO_sorted_to_CSR<ValueType>(nbRows, nbCols, values.get(), nbValues);
-        std::pair<SPC5_MATRIX_TYPE, double> esimation_omp = SPC5_find_best_omp<ValueType>(csr, omp_get_max_threads());
-        std::cout << "-> Esimated threaded performance are " << esimation_omp.second << " for " << SPC5_type_to_string(esimation_omp.first)
-                  << " with " << omp_get_max_threads() << "\n";
-    }
-    {
-        memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
-
-        std::cout << "Start openmp 1rVc: "<< std::endl;
-        SPC5Mat<ValueType> csr = COO_to_SPC5_1rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
-        std::vector<ThreadInterval<ValueType>> intervals = SPC5_1rVc_split_omp(csr);
-        dtimer timer;
-
-        for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
-            SPC5_1rVc_Spmv_omp<ValueType>(csr, x.get(), y.get(), intervals);
+    if constexpr(std::is_same<double, ValueType>::value){
+        std::cout << "===================================================" << std::endl;
+        std::cout << "Openmp is enabled with " << omp_get_max_threads() << " threads per default" << std::endl;
+        {
+            std::cout << "Estimate for omp: " << nbRows << std::endl;
+            SPC5Mat<ValueType> csr = COO_sorted_to_CSR<ValueType>(nbRows, nbCols, values.get(), nbValues);
+            std::pair<SPC5_MATRIX_TYPE, double> esimation_omp = SPC5_find_best_omp<ValueType>(csr, omp_get_max_threads());
+            std::cout << "-> Esimated threaded performance are " << esimation_omp.second << " for " << SPC5_type_to_string(esimation_omp.first)
+                      << " with " << omp_get_max_threads() << "\n";
         }
+        {
+            memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
 
-        timer.stop();
-        std::cout << "-> Done in " << timer.getElapsed() << "s\n";
-        std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
-        std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
-        std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
-    }
-    {
-        memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
+            std::cout << "Start openmp 1rVc: "<< std::endl;
+            SPC5Mat<ValueType> csr = COO_to_SPC5_1rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
+            std::vector<ThreadInterval<ValueType>> intervals = SPC5_1rVc_split_omp(csr);
+            dtimer timer;
 
-        std::cout << "Start openmp 2rVc: "<< std::endl;
-        SPC5Mat<ValueType> csr = COO_to_SPC5_2rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
-        std::vector<ThreadInterval<ValueType>> intervals = SPC5_2rVc_split_omp(csr);
-        dtimer timer;
+            for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
+                SPC5_1rVc_Spmv_omp<ValueType>(csr, x.get(), y.get(), intervals);
+            }
 
-        for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
-            SPC5_2rVc_Spmv_omp<ValueType>(csr, x.get(), y.get(), intervals);
+            timer.stop();
+            std::cout << "-> Done in " << timer.getElapsed() << "s\n";
+            std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
+            std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
+            std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
         }
+        {
+            memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
 
-        timer.stop();
-        std::cout << "-> Done in " << timer.getElapsed() << "s\n";
-        std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
-        std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
-        std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
-    }
-    {
-        memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
+            std::cout << "Start openmp 2rVc: "<< std::endl;
+            SPC5Mat<ValueType> csr = COO_to_SPC5_2rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
+            std::vector<ThreadInterval<ValueType>> intervals = SPC5_2rVc_split_omp(csr);
+            dtimer timer;
 
-        std::cout << "Start openmp 4rVc: "<< std::endl;
-        SPC5Mat<ValueType> csr = COO_to_SPC5_4rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
-        std::vector<ThreadInterval<ValueType>> intervals = SPC5_4rVc_split_omp(csr);
-        dtimer timer;
+            for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
+                SPC5_2rVc_Spmv_omp<ValueType>(csr, x.get(), y.get(), intervals);
+            }
 
-        for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
-            SPC5_4rVc_Spmv_omp<ValueType>(csr, x.get(), y.get(), intervals);
+            timer.stop();
+            std::cout << "-> Done in " << timer.getElapsed() << "s\n";
+            std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
+            std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
+            std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
         }
+        {
+            memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
 
-        timer.stop();
-        std::cout << "-> Done in " << timer.getElapsed() << "s\n";
-        std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
-        std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
-        std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
+            std::cout << "Start openmp 4rVc: "<< std::endl;
+            SPC5Mat<ValueType> csr = COO_to_SPC5_4rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
+            std::vector<ThreadInterval<ValueType>> intervals = SPC5_4rVc_split_omp(csr);
+            dtimer timer;
+
+            for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
+                SPC5_4rVc_Spmv_omp<ValueType>(csr, x.get(), y.get(), intervals);
+            }
+
+            timer.stop();
+            std::cout << "-> Done in " << timer.getElapsed() << "s\n";
+            std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
+            std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
+            std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
+        }
     }
 #endif
     return 0;
