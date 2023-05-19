@@ -19,22 +19,25 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SPC5_EXTRA_FLAG}")
 
 #################################################
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|AARCH64|arm64|ARM64")
+    message(STATUS "ARMv8 architecture detected")
+    SET(SPC5_ARM_SVE_FLAG "-march=armv8.2-a+sve" CACHE STRING "Additional ARM SVE flags"  )    
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SPC5_ARM_SVE_FLAG}")
+else()
+    message(STATUS "Non-ARMv8 architecture")
+    # Add configuration or build options for other architectures here
+    add_definitions(-DUSE_FARM)
+    add_definitions(-DFARM_NB_BITS_IN_VEC=512)
+endif()
+
+#################################################
+
 option(USEDENSE "Use dense or no" FALSE)
 message(STATUS "USEDENSE = ${USEDENSE}")
 if(USEDENSE)
     add_definitions(-DUSEDENSE)
 else()
 
-endif()
-#################################################
-
-option(USE_FARM "Set to true to use FARM" FALSE)
-message(STATUS "USE_FARM = ${USE_FARM}")
-if(USE_FARM)
-    add_definitions(-DUSE_FARM)
-    add_definitions(-DFARM_NB_BITS_IN_VEC=512)
-else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8.2-a+sve")    
 endif()
 
 #################################################
@@ -71,6 +74,7 @@ if(DEFINED ENV{ARMPLROOT})
 else()
     set(ARMPL_FOUND FALSE)
 endif()
+
 option(USE_ARMPL "Compile examples with ARMPL" ${ARMPL_FOUND})
 message(STATUS "USE_ARMPL  = ${USE_ARMPL}")
 if(DEFINED ENV{ARMPLROOT} AND USE_ARMPL)

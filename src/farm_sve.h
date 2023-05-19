@@ -99,7 +99,7 @@
 ///////// Float16 /////////
 
 #ifdef __F16C__
-#include <immintrin.h>
+//#include <immintrin.h>
 #define FARM_USE_F16C 1
 #endif
 

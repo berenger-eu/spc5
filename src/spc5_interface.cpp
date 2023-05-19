@@ -122,23 +122,11 @@ void spc5_spmv_core(void* ptr, const ValueType* x, ValueType* y){
         // core_SPC5_rVc_Spmv_scalar<ValueType,1>(((MatrixContainer<ValueType>*)ptr)->csr, x, y);
         SPC5_1rVc_Spmv<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y);
         break;
-    case SPC5_FORMAT_2rV2c_WT:
-        SPC5_2rV2c_wt_Spmv<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y);
-        break;
-    case SPC5_FORMAT_2rV2c:
-        SPC5_2rV2c_Spmv<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y);
-        break;
     case SPC5_FORMAT_2rVc:
         SPC5_2rVc_Spmv<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y);
         break;
-    case SPC5_FORMAT_4rV2c:
-        SPC5_4rV2c_Spmv<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y);
-        break;
     case SPC5_FORMAT_4rVc:
         SPC5_4rVc_Spmv<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y);
-        break;
-    case SPC5_FORMAT_8rV2c:
-        SPC5_8rV2c_Spmv<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y);
         break;
     default:
         printf("[SPC5] Invalid SPC5 format %d (line %d file %s)\n", ((MatrixContainer<ValueType>*)ptr)->format, __LINE__, __FILE__);
@@ -170,23 +158,11 @@ void spc5_spmv_omp_core(void* ptr, const ValueType* x, ValueType* y){
     case SPC5_FORMAT_1rVc_WT:
         SPC5_1rVc_Spmv_omp<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y, ((MatrixContainer<ValueType>*)ptr)->intervals);
         break;
-    case SPC5_FORMAT_2rV2c_WT:
-        SPC5_2rV2c_wt_Spmv_omp<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y, ((MatrixContainer<ValueType>*)ptr)->intervals);
-        break;
-    case SPC5_FORMAT_2rV2c:
-        SPC5_2rV2c_Spmv_omp<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y, ((MatrixContainer<ValueType>*)ptr)->intervals);
-        break;
     case SPC5_FORMAT_2rVc:
         SPC5_2rVc_Spmv_omp<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y, ((MatrixContainer<ValueType>*)ptr)->intervals);
         break;
-    case SPC5_FORMAT_4rV2c:
-        SPC5_4rV2c_Spmv_omp<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y, ((MatrixContainer<ValueType>*)ptr)->intervals);
-        break;
     case SPC5_FORMAT_4rVc:
         SPC5_4rVc_Spmv_omp<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y, ((MatrixContainer<ValueType>*)ptr)->intervals);
-        break;
-    case SPC5_FORMAT_8rV2c:
-        SPC5_8rV2c_Spmv_omp<ValueType>(((MatrixContainer<ValueType>*)ptr)->csr, x, y, ((MatrixContainer<ValueType>*)ptr)->intervals);
         break;
     default:
         printf("[SPC5] Invalid SPC5 format %d (line %d file %s)\n", ((MatrixContainer<ValueType>*)ptr)->format, __LINE__, __FILE__);
