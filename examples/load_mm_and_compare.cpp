@@ -458,7 +458,11 @@ void builddense(const int dim,
 
 
 int main(int argc, char** argv){
+#ifdef USEFLOAT
+    using ValueType = float;
+#else
     using ValueType = double;
+#endif
 #ifndef USEDENSE
     if(argc != 2){
         std::cerr << "[ERROR] You should pass a matrix market file as argument, exiting..." << std::endl;

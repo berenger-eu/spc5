@@ -42,6 +42,16 @@ endif()
 
 #################################################
 
+option(USEFLOAT "Use float" FALSE)
+message(STATUS "USEFLOAT = ${USEFLOAT}")
+if(USEFLOAT)
+    add_definitions(-DUSEFLOAT)
+else()
+
+endif()
+
+#################################################
+
 option(SPLIT_NUMA "Set to true to split the arrays between threads" TRUE)
 message(STATUS "SPLIT_NUMA = ${SPLIT_NUMA}")
 if(SPLIT_NUMA)
