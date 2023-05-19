@@ -94,7 +94,7 @@ foreach(an_example ${cpp_for_examples})
     add_executable(${execname} ${an_example})
     target_link_libraries(${execname} spc5) 
     if(USE_ARMPL)
-        target_link_libraries(${execname} -Wl,--start-group $ENV{ARMPLROOT}/lib/intel64/libARMPL_intel_lp64.a $ENV{ARMPLROOT}/lib/intel64/libARMPL_sequential.a $ENV{ARMPLROOT}/lib/intel64/libARMPL_core.a -Wl,--end-group -lpthread -lm -ldl)
+        target_link_libraries(${execname} armpl)
     endif()
 endforeach()
 
