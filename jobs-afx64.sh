@@ -84,8 +84,8 @@ for url in "${urls[@]}"; do
             
         if [[ -n "$mtx_file" ]]; then
             echo "Compute : $mtx_file"
-            ./load_mm_and_compare-double "$mtx_file" >> res_"$filename"_double.txt
-            ./load_mm_and_compare-float "$mtx_file" >> res_"$filename"_float.txt
+            taskset -c 0 ./load_mm_and_compare-double "$mtx_file" >> res_"$filename"_double.txt
+            taskset -c 0 ./load_mm_and_compare-float "$mtx_file" >> res_"$filename"_float.txt
             rm -r "$working_dir/$filename"
         else
             echo "No .mtx file found in $filename"
@@ -113,5 +113,5 @@ make
 
 cp ./load_mm_and_compare ./load_mm_and_compare-float
 
-./load_mm_and_compare-double >> res_dense_double.txt
-./load_mm_and_compare-float >> res_dense_float.txt
+taskset -c 0 ./load_mm_and_compare-double >> res_dense_double.txt
+taskset -c 0 ./load_mm_and_compare-float >> res_dense_float.txt
