@@ -70,18 +70,19 @@ for url in "${urls[@]}"; do
             wget "$url"
 
             # Extract the tar.gz file
-            tar -xzf "$filename"
+            tar -xzf "$filename.tar.gz"
 
             # Get the name of the extracted file
-            extracted_files=$(tar -tf "$filename")
+            extracted_files=$(tar -tf "$filename.tar.gz")
             mtx_file=$(echo "$extracted_files" | grep -m 1 '\.mtx$')
+            rm "$filename.tar.gz"
         fi
             
         if [[ -n "$mtx_file" ]]; then
             echo "Compute : $mtx_file"
             ./load_mm_and_compare-double "$mtx_file" > res_"$filename"_double.txt
             ./load_mm_and_compare-float "$mtx_file" > res_"$filename"_float.txt
-            rm -r "$filename" "$extracted_files"
+            rm -r "$filename"
         else
             echo "No .mtx file found in $filename"
         fi
