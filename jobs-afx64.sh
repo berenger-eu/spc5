@@ -63,26 +63,26 @@ for url in "${urls[@]}"; do
     if [[ -n "res_"$filename"_float.txt" ]]; then
         echo "Do it $filename"
         # Check if the file already exists
-        if [ -e "$filename" ]; then
-            echo "File $filename already exists. Skipping download."
-            mtx_file=$(find "$filename" -type f -name '*.mtx' -print -quit)
+        if [ -e "/scratch/$filename" ]; then
+            echo "File /scratch/$filename already exists. Skipping download."
+            mtx_file=$(find "/scratch/$filename" -type f -name '*.mtx' -print -quit)
         else
             wget "$url"
 
             # Extract the tar.gz file
-            tar -xzf "$filename.tar.gz"
+            tar -xzf "$filename.tar.gz -C /scratch/$filename"
 
             # Get the name of the extracted file
             extracted_files=$(tar -tf "$filename.tar.gz")
-            mtx_file=$(echo "$extracted_files" | grep -m 1 '\.mtx$')
-            rm "$filename.tar.gz"
+            mtx_file=$(echo "/scratch/$extracted_files" | grep -m 1 '\.mtx$')
+            rm "/scratch/$filename.tar.gz"
         fi
             
         if [[ -n "$mtx_file" ]]; then
             echo "Compute : $mtx_file"
             ./load_mm_and_compare-double "$mtx_file" >> res_"$filename"_double.txt
             ./load_mm_and_compare-float "$mtx_file" >> res_"$filename"_float.txt
-            rm -r "$filename"
+            rm -r "/scratch/$filename"
         else
             echo "No .mtx file found in $filename"
         fi
