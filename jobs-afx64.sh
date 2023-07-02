@@ -3,6 +3,8 @@
 #PBS -l select=1:ncpus=48,place=scatter
 #PBS -l walltime=24:00:00
 
+set -x
+
 cd /home/ri-bbramas/spc5-arm-sve/build/
 
 module load gcc/10.3.0
