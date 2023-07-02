@@ -54,7 +54,7 @@ urls=(
     "https://suitesparse-collection-website.herokuapp.com/MM/Gleich/wikipedia-20060925.tar.gz"
 )
 
-working_dir="./"
+working_dir="./matrices/"
 
 for url in "${urls[@]}"; do
     echo " ============================================== "
