@@ -79,7 +79,7 @@ for url in "${urls[@]}"; do
             # Get the name of the extracted file
             extracted_files=$(tar -tf "$filename.tar.gz")
             mtx_file=$(echo "$working_dir/$extracted_files" | grep -m 1 '\.mtx$')
-            rm "$working_dir/$filename.tar.gz"
+            rm "$filename.tar.gz"
         fi
             
         if [[ -n "$mtx_file" ]]; then
