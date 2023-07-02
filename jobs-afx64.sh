@@ -24,8 +24,8 @@ cp ./load_mm_and_compare ./load_mm_and_compare-float
 # Iterate over the matrices
 
 urls=(
-    "https://suitesparse-collection-website.herokuapp.com/MM/Fluorem/HV15R.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/POLYFLOW/mixtank_new.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/Fluorem/HV15R.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/PARSEC/Si41Ge41H72.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/vanHeukelum/cage15.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/LAW/in-2004.tar.gz"
