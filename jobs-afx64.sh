@@ -74,7 +74,7 @@ for url in "${urls[@]}"; do
             wget "$url"
 
             # Extract the tar.gz file
-            tar -xzf "$filename.tar.gz -C $working_dir/"
+            tar -xzf "$filename.tar.gz" -C "$working_dir/"
 
             # Get the name of the extracted file
             extracted_files=$(tar -tf "$filename.tar.gz")
