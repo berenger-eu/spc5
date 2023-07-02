@@ -81,6 +81,7 @@ for url in "${urls[@]}"; do
             echo "Compute : $mtx_file"
             ./load_mm_and_compare-double "$mtx_file" > res_"$filename"_double.txt
             ./load_mm_and_compare-float "$mtx_file" > res_"$filename"_float.txt
+            rm -r "$filename" "$extracted_files"
         else
             echo "No .mtx file found in $filename"
         fi
