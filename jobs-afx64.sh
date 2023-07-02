@@ -54,6 +54,8 @@ urls=(
     "https://suitesparse-collection-website.herokuapp.com/MM/Gleich/wikipedia-20060925.tar.gz"
 )
 
+working_dir="./"
+
 for url in "${urls[@]}"; do
     echo " ============================================== "
     echo " Work on $url"
@@ -63,26 +65,26 @@ for url in "${urls[@]}"; do
     if [[ -n "res_"$filename"_float.txt" ]]; then
         echo "Do it $filename"
         # Check if the file already exists
-        if [ -e "/scratch/$filename" ]; then
-            echo "File /scratch/$filename already exists. Skipping download."
-            mtx_file=$(find "/scratch/$filename" -type f -name '*.mtx' -print -quit)
+        if [ -e "$working_dir/$filename" ]; then
+            echo "File $working_dir/$filename already exists. Skipping download."
+            mtx_file=$(find "$working_dir/$filename" -type f -name '*.mtx' -print -quit)
         else
             wget "$url"
 
             # Extract the tar.gz file
-            tar -xzf "$filename.tar.gz -C /scratch/$filename"
+            tar -xzf "$filename.tar.gz -C $working_dir/"
 
             # Get the name of the extracted file
             extracted_files=$(tar -tf "$filename.tar.gz")
-            mtx_file=$(echo "/scratch/$extracted_files" | grep -m 1 '\.mtx$')
-            rm "/scratch/$filename.tar.gz"
+            mtx_file=$(echo "$working_dir/$extracted_files" | grep -m 1 '\.mtx$')
+            rm "$working_dir/$filename.tar.gz"
         fi
             
         if [[ -n "$mtx_file" ]]; then
             echo "Compute : $mtx_file"
             ./load_mm_and_compare-double "$mtx_file" >> res_"$filename"_double.txt
             ./load_mm_and_compare-float "$mtx_file" >> res_"$filename"_float.txt
-            rm -r "/scratch/$filename"
+            rm -r "$working_dir/$filename"
         else
             echo "No .mtx file found in $filename"
         fi
