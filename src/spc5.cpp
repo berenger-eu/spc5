@@ -6,7 +6,7 @@ void core_SPC5_1rVc_Spmv_double(const long int nbRows, const int* rowSizes,
                                 const unsigned char* headers,
                                 const double* values,
                                 const double* x, double* y){
-    const svbool_t false_vec = svpfalse();
+    //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b64();
     const svfloat64_t zeros = svdup_n_f64(0);
     const unsigned long maskFilterValues[8] = {1<<0, 1<<1, 1<<2, 1<<3,
@@ -46,7 +46,7 @@ void core_SPC5_1rVc_Spmv_float(const long int nbRows, const int* rowSizes,
                                const unsigned char* headers,
                                const float* values,
                                const float* x, float* y){
-    const svbool_t false_vec = svpfalse();
+    //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b32();
     const svfloat32_t zeros = svdup_n_f32(0);
     const unsigned int maskFilterValues[16] = {1<<0, 1<<1, 1<<2, 1<<3,
@@ -89,7 +89,7 @@ void core_SPC5_2rVc_Spmv_double(const long int nbRows, const int* rowSizes,
                                 const unsigned char* headers,
                                 const double* values,
                                 const double* x, double* y){
-    const svbool_t false_vec = svpfalse();
+    //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b64();
     const svfloat64_t zeros = svdup_n_f64(0);
     const unsigned long maskFilterValues[8] = {1<<0, 1<<1, 1<<2, 1<<3,
@@ -139,7 +139,7 @@ void core_SPC5_2rVc_Spmv_float(const long int nbRows, const int* rowSizes,
                                const unsigned char* headers,
                                const float* values,
                                const float* x, float* y){
-    const svbool_t false_vec = svpfalse();
+    //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b32();
     const svfloat32_t zeros = svdup_n_f32(0);
     const unsigned int maskFilterValues[16] = {1<<0, 1<<1, 1<<2, 1<<3,
@@ -194,7 +194,7 @@ void core_SPC5_4rVc_Spmv_double(const long int nbRows, const int* rowSizes,
                                 const unsigned char* headers,
                                 const double* values,
                                 const double* x, double* y){
-    const svbool_t false_vec = svpfalse();
+    //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b64();
     const svfloat64_t zeros = svdup_n_f64(0);
     const unsigned long maskFilterValues[8] = {1<<0, 1<<1, 1<<2, 1<<3,
@@ -269,7 +269,7 @@ void core_SPC5_4rVc_Spmv_float(const long int nbRows, const int* rowSizes,
                                const unsigned char* headers,
                                const float* values,
                                const float* x, float* y){
-    const svbool_t false_vec = svpfalse();
+    //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b32();
     const svfloat32_t zeros = svdup_n_f32(0);
     const unsigned int maskFilterValues[16] = {1<<0, 1<<1, 1<<2, 1<<3,
