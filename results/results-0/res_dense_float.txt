@@ -1,0 +1,29 @@
+-> number of rows = 8000
+-> number of columns = 8000
+-> number of values = 64000000
+-> number of values per row = 8000
+-> number loops to smooth the timing if > 1 =  16
+-> number of flops to do per spmv = 2048000000
+Start usual CSR: 8000
+Conversion in : 0.766021s
+-> Done in 5.18623s
+-> GFlops 0.394892s
+-> Esimated performance are 7.16894 for 4rV2c
+Start usual 1rVc: 
+Conversion in : 13.1353s
+-> Done in 0.376312s
+-> Number of blocks 4000000( avg. 16 values per block)
+-> GFlops 5.4423s
+-> Max Difference in Accuracy 0
+Start usual 2rVc: 
+Conversion in : 13.448s
+-> Done in 0.308577s
+-> Number of blocks 2000000( avg. 32 values per block)
+-> GFlops 6.63691s
+-> Max Difference in Accuracy 0
+Start usual 4rVc: 
+Conversion in : 13.3601s
+-> Done in 0.327462s
+-> Number of blocks 1000000( avg. 64 values per block)
+-> GFlops 6.25416s
+-> Max Difference in Accuracy 0

@@ -32,12 +32,13 @@ void core_SPC5_1rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values);
             values += increment;
             
-            sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
+            // sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
+            y[idxRow] += svaddv(mask_vec, svmul_z(mask_vec, xvals, block));
 
             headers += 5;
         }
 
-        y[idxRow] += svaddv(true_vec, sum_vec);
+        // y[idxRow] += svaddv(true_vec, sum_vec);
     }
 }
 
@@ -74,12 +75,13 @@ void core_SPC5_1rVc_Spmv_float(const long int nbRows, const int* rowSizes,
             const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values);
             values += increment;
 
-            sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
+            y[idxRow] += svaddv(mask_vec, svmul_z(mask_vec, xvals, block));
+//            sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
 
             headers += 6;
         }
 
-        y[idxRow] += svaddv(true_vec, sum_vec);
+//        y[idxRow] += svaddv(true_vec, sum_vec);
     }
 }
 
