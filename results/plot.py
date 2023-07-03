@@ -39,7 +39,7 @@ for i, row in df.iterrows():
 
     # Create a bar plot for the current row
     ax = axes[row_index, col_index] if num_rows_plot > 1 else axes[col_index]
-    ax.bar(values.index, values, color=colors)
+    bars = ax.bar(values.index, values, color=colors)
     # ax.set_xlabel('Implementation')
     if col_index == 0:
         ax.set_ylabel('GFlops/s')
@@ -50,6 +50,15 @@ for i, row in df.iterrows():
     
     # Format the y-axis tick labels to have consistent decimal precision
     ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.2f}'))
+    
+    # Add numbers above the bars
+    for idx, bar in enumerate(bars):
+        if idx != 0:
+            height = bar.get_height()
+            speedup=values[idx]/values[0]
+            ax.annotate(f'×{speedup:.1f}', xy=(bar.get_x() + bar.get_width() / 2, height),
+                        xytext=(0, 3), textcoords='offset points',
+                        ha='center', va='bottom')
 
 # Remove any empty subplots
 # fig.delaxes(axes[row_index, col_index])
