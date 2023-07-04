@@ -103,7 +103,7 @@ done
 
 #################################
 
-use_dense=false
+use_dense=true
 
 if $use_dense ; then
     echo ==== Dense ===
