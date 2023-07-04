@@ -31,7 +31,7 @@ for i, row in df.iterrows():
     # Get the data for the current row
     matrixname = row['matrixname']
     types = row['type']
-    values = row[['scalar', '1rVc', '2rVc', '4rVc']].astype(float)
+    values = row[['scalar', '1rVc', '1rVc_v2', '2rVc', '2rVc_v2', '4rVc', '4rVc_v2']].astype(float)
 
     # Calculate the subplot indices for the current row
     row_index = i // num_cols_plot
