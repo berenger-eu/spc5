@@ -1,0 +1,31 @@
+Will now open cage15/cage15.mtx
+    99199550/99199551 : 100% [===================>]]
+-> number of rows = 5154859
+-> number of columns = 5154859
+-> number of values = 99199551
+-> number of values per row = 19.2439
+-> number loops to smooth the timing if > 1 =  16
+-> number of flops to do per spmv = 3174385632
+Start usual CSR: 5154859
+Conversion in : 1.03578s
+-> Done in 9.13513s
+-> GFlops 0.347492s
+-> Esimated performance are 2.30982 for 2rVc
+Start usual 1rVc: 
+Conversion in : 16.1353s
+-> Done in 32.9022s
+-> Number of blocks 79458176( avg. 1.24845 values per block)
+-> GFlops 0.0964794s
+-> Max Difference in Accuracy 0.93615
+Start usual 2rVc: 
+Conversion in : 15.9672s
+-> Done in 9.51206s
+-> Number of blocks 43732918( avg. 2.2683 values per block)
+-> GFlops 0.333722s
+-> Max Difference in Accuracy 6.71948e-07
+Start usual 4rVc: 
+Conversion in : 15.5739s
+-> Done in 12.3297s
+-> Number of blocks 25121705( avg. 3.94876 values per block)
+-> GFlops 0.257459s
+-> Max Difference in Accuracy 6.71948e-07
