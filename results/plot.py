@@ -48,6 +48,12 @@ for i, row in df.iterrows():
     # Set the major locator for the y-axis ticks
     ax.yaxis.set_major_locator(MaxNLocator(nbins=3))
     
+    # Calculate the maximum y-tick value
+    max_value = max(values) * 1.2
+
+    # Set the y-axis limits
+    ax.set_ylim(top=max_value)
+    
     # Format the y-axis tick labels to have consistent decimal precision
     ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.2f}'))
     
