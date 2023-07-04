@@ -25,26 +25,20 @@ cp ./load_mm_and_compare ./load_mm_and_compare-float
 
 # Iterate over the matrices
 
-urls=(
+urls_normal=(
     "https://suitesparse-collection-website.herokuapp.com/MM/POLYFLOW/mixtank_new.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/Fluorem/HV15R.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/PARSEC/Si41Ge41H72.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/vanHeukelum/cage15.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/LAW/in-2004.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/ND/nd6k.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/PARSEC/Si87H76.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/Freescale/circuit5M.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/LAW/indochina-2004.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/FEMLAB/ns3Da.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/PARSEC/CO.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/DIMACS10/kron_g500-logn21.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Williams/pdb1HYS.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Norris/torso1.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/GHS_psdef/crankseg_2.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/GHS_psdef/ldoor.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Boeing/pwtk.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Mazaheri/bundle_adj.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/Janna/Cube_Coup_dt0.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Dziekonski/dielFilterV2real.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Janna/Emilia_923.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Freescale/FullChip.tar.gz"
@@ -55,6 +49,18 @@ urls=(
     "https://suitesparse-collection-website.herokuapp.com/MM/TSOPF/TSOPF_RS_b2383_c1.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Gleich/wikipedia-20060925.tar.gz"
 )
+
+urls_big=(
+    "https://suitesparse-collection-website.herokuapp.com/MM/Janna/Cube_Coup_dt0.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/DIMACS10/kron_g500-logn21.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/vanHeukelum/cage15.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/Fluorem/HV15R.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/LAW/indochina-2004.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/Freescale/circuit5M.tar.gz"
+)
+
+# urls=$urls_normal
+urls=$urls_big
 
 working_dir="./matrices/"
 
@@ -98,20 +104,24 @@ done
 
 #################################
 
-echo ==== Dense ===
+use_dense=false
 
-# Dense
-# Gen double version
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=OFF -DUSEDENSE=ON
-make
+if $use_dense ; then
+    echo ==== Dense ===
 
-cp ./load_mm_and_compare ./load_mm_and_compare-double
+    # Dense
+    # Gen double version
+    CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=OFF -DUSEDENSE=ON
+    make
 
-# Gen float version
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=ON -DUSEDENSE=ON
-make
+    cp ./load_mm_and_compare ./load_mm_and_compare-double
 
-cp ./load_mm_and_compare ./load_mm_and_compare-float
+    # Gen float version
+    CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=ON -DUSEDENSE=ON
+    make
 
-taskset -c 0 ./load_mm_and_compare-double >> res_dense_double.txt
-taskset -c 0 ./load_mm_and_compare-float >> res_dense_float.txt
+    cp ./load_mm_and_compare ./load_mm_and_compare-float
+
+    taskset -c 0 ./load_mm_and_compare-double >> res_dense_double.txt
+    taskset -c 0 ./load_mm_and_compare-float >> res_dense_float.txt
+fi
