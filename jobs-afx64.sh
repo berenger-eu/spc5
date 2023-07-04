@@ -51,12 +51,11 @@ urls_normal=(
 )
 
 urls_big=(
-    "https://suitesparse-collection-website.herokuapp.com/MM/Janna/Cube_Coup_dt0.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/DIMACS10/kron_g500-logn21.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/vanHeukelum/cage15.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/Fluorem/HV15R.tar.gz"
-    "https://suitesparse-collection-website.herokuapp.com/MM/LAW/indochina-2004.tar.gz"
     "https://suitesparse-collection-website.herokuapp.com/MM/Freescale/circuit5M.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/vanHeukelum/cage15.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/DIMACS10/kron_g500-logn21.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/LAW/indochina-2004.tar.gz"
+    "https://suitesparse-collection-website.herokuapp.com/MM/Fluorem/HV15R.tar.gz"
 )
 
 # urls=$urls_normal
