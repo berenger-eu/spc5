@@ -379,7 +379,7 @@ int main(int argc, char** argv){
 #ifndef USEDENSE
     loadMM<ValueType>(argv[1], &values, &nbRows, &nbCols, &nbValues);
 #else
-    builddense<ValueType>(8000, &values, &nbRows, &nbCols, &nbValues);
+    builddense<ValueType>(2048, &values, &nbRows, &nbCols, &nbValues);
 #endif
 
     std::cout << "-> number of rows = " << nbRows << std::endl;
@@ -470,6 +470,26 @@ int main(int argc, char** argv){
     {
         memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
 
+        std::cout << "Start usual 1rVc_v2: "<< std::endl;
+        dtimer timerConversion;
+        SPC5Mat<ValueType> csr = COO_to_SPC5_1rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
+        timerConversion.stop();
+        std::cout << "Conversion in : " << timerConversion.getElapsed() << "s\n";
+        dtimer timer;
+
+        for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
+            SPC5_1rVc_Spmv_v2<ValueType>(csr, x.get(), y.get());
+        }
+
+        timer.stop();
+        std::cout << "-> Done in " << timer.getElapsed() << "s\n";
+        std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
+        std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
+        std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
+    }
+    {
+        memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
+
         std::cout << "Start usual 2rVc: "<< std::endl;
         dtimer timerConversion;
         SPC5Mat<ValueType> csr = COO_to_SPC5_2rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
@@ -479,6 +499,26 @@ int main(int argc, char** argv){
 
         for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
             SPC5_2rVc_Spmv<ValueType>(csr, x.get(), y.get());
+        }
+
+        timer.stop();
+        std::cout << "-> Done in " << timer.getElapsed() << "s\n";
+        std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
+        std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
+        std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
+    }
+    {
+        memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
+
+        std::cout << "Start usual 2rVc_v2: "<< std::endl;
+        dtimer timerConversion;
+        SPC5Mat<ValueType> csr = COO_to_SPC5_2rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
+        timerConversion.stop();
+        std::cout << "Conversion in : " << timerConversion.getElapsed() << "s\n";
+        dtimer timer;
+
+        for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
+            SPC5_2rVc_Spmv_v2<ValueType>(csr, x.get(), y.get());
         }
 
         timer.stop();
@@ -507,8 +547,28 @@ int main(int argc, char** argv){
         std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
         std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
     }
+    {
+        memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
+
+        std::cout << "Start usual 4rVc_v2: "<< std::endl;
+        dtimer timerConversion;
+        SPC5Mat<ValueType> csr = COO_to_SPC5_4rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
+        timerConversion.stop();
+        std::cout << "Conversion in : " << timerConversion.getElapsed() << "s\n";
+        dtimer timer;
+
+        for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
+            SPC5_4rVc_Spmv_v2<ValueType>(csr, x.get(), y.get());
+        }
+
+        timer.stop();
+        std::cout << "-> Done in " << timer.getElapsed() << "s\n";
+        std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
+        std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
+        std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
+    }
 #ifdef _OPENMP
-    if constexpr(std::is_same<double, ValueType>::value){
+    if constexpr(std::is_same<double, ValueType>::value && false){// I do not want openmp for the bench
         std::cout << "===================================================" << std::endl;
         std::cout << "Openmp is enabled with " << omp_get_max_threads() << " threads per default" << std::endl;
         {
