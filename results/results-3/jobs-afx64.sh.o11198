@@ -1,0 +1,169 @@
+-- ARMv8 architecture detected
+-- USEDENSE = OFF
+-- USEFLOAT = OFF
+-- SPLIT_NUMA = ON
+-- OPENMP_FOUND = TRUE
+-- CMAKE_CXX_FLAGS =  -march=native -Wextra -Wnon-virtual-dtor -Wshadow -Wpointer-arith -Wcast-qual -Wconversion  -Wall -Wno-sign-conversion -pedantic -Woverloaded-virtual -Wpointer-arith -Wcast-qual -Wconversion -Wno-error -march=armv8.2-a+sve -fopenmp
+-- USE_ARMPL  = OFF
+-- Add example load_mm_and_compare for /home/ri-bbramas/spc5-arm-sve/examples/load_mm_and_compare.cpp
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ri-bbramas/spc5-arm-sve/build
+Scanning dependencies of target spc5
+[ 20%] Building CXX object CMakeFiles/spc5.dir/src/spc5.cpp.o
+[ 40%] Building CXX object CMakeFiles/spc5.dir/src/spc5_interface.cpp.o
+[ 60%] Linking CXX static library libspc5.a
+[ 60%] Built target spc5
+Scanning dependencies of target load_mm_and_compare
+[ 80%] Building CXX object CMakeFiles/load_mm_and_compare.dir/examples/load_mm_and_compare.cpp.o
+[100%] Linking CXX executable load_mm_and_compare
+[100%] Built target load_mm_and_compare
+-- ARMv8 architecture detected
+-- USEDENSE = OFF
+-- USEFLOAT = ON
+-- SPLIT_NUMA = ON
+-- OPENMP_FOUND = TRUE
+-- CMAKE_CXX_FLAGS =  -march=native -Wextra -Wnon-virtual-dtor -Wshadow -Wpointer-arith -Wcast-qual -Wconversion  -Wall -Wno-sign-conversion -pedantic -Woverloaded-virtual -Wpointer-arith -Wcast-qual -Wconversion -Wno-error -march=armv8.2-a+sve -fopenmp
+-- USE_ARMPL  = OFF
+-- Add example load_mm_and_compare for /home/ri-bbramas/spc5-arm-sve/examples/load_mm_and_compare.cpp
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ri-bbramas/spc5-arm-sve/build
+Scanning dependencies of target spc5
+[ 20%] Building CXX object CMakeFiles/spc5.dir/src/spc5.cpp.o
+[ 40%] Building CXX object CMakeFiles/spc5.dir/src/spc5_interface.cpp.o
+[ 60%] Linking CXX static library libspc5.a
+[ 60%] Built target spc5
+Scanning dependencies of target load_mm_and_compare
+[ 80%] Building CXX object CMakeFiles/load_mm_and_compare.dir/examples/load_mm_and_compare.cpp.o
+[100%] Linking CXX executable load_mm_and_compare
+[100%] Built target load_mm_and_compare
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/POLYFLOW/mixtank_new.tar.gz
+Do it mixtank_new
+Compute : ./matrices//mixtank_new/mixtank_new.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/PARSEC/Si41Ge41H72.tar.gz
+Do it Si41Ge41H72
+Compute : ./matrices//Si41Ge41H72/Si41Ge41H72.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/LAW/in-2004.tar.gz
+Do it in-2004
+Compute : ./matrices//in-2004/in-2004.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/ND/nd6k.tar.gz
+Do it nd6k
+Compute : ./matrices//nd6k/nd6k.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/PARSEC/Si87H76.tar.gz
+Do it Si87H76
+Compute : ./matrices//Si87H76/Si87H76.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/FEMLAB/ns3Da.tar.gz
+Do it ns3Da
+Compute : ./matrices//ns3Da/ns3Da.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/PARSEC/CO.tar.gz
+Do it CO
+Compute : ./matrices//CO/CO.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Williams/pdb1HYS.tar.gz
+Do it pdb1HYS
+Compute : ./matrices//pdb1HYS/pdb1HYS.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Norris/torso1.tar.gz
+Do it torso1
+Compute : ./matrices//torso1/torso1.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/GHS_psdef/crankseg_2.tar.gz
+Do it crankseg_2
+Compute : ./matrices//crankseg_2/crankseg_2.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/GHS_psdef/ldoor.tar.gz
+Do it ldoor
+Compute : ./matrices//ldoor/ldoor.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Boeing/pwtk.tar.gz
+Do it pwtk
+Compute : ./matrices//pwtk/pwtk.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Mazaheri/bundle_adj.tar.gz
+Do it bundle_adj
+Compute : ./matrices//bundle_adj/bundle_adj.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Dziekonski/dielFilterV2real.tar.gz
+Do it dielFilterV2real
+Compute : ./matrices//dielFilterV2real/dielFilterV2real.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Janna/Emilia_923.tar.gz
+Do it Emilia_923
+Compute : ./matrices//Emilia_923/Emilia_923.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Freescale/FullChip.tar.gz
+Do it FullChip
+Compute : ./matrices//FullChip/FullChip.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Janna/Hook_1498.tar.gz
+Do it Hook_1498
+Compute : ./matrices//Hook_1498/Hook_1498.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Fluorem/RM07R.tar.gz
+Do it RM07R
+Compute : ./matrices//RM07R/RM07R.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Janna/Serena.tar.gz
+Do it Serena
+Compute : ./matrices//Serena/Serena.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Mittelmann/spal_004.tar.gz
+Do it spal_004
+Compute : ./matrices//spal_004/spal_004.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/TSOPF/TSOPF_RS_b2383_c1.tar.gz
+Do it TSOPF_RS_b2383_c1
+Compute : ./matrices//TSOPF_RS_b2383_c1/TSOPF_RS_b2383_c1.mtx
+ ============================================== 
+ Work on https://suitesparse-collection-website.herokuapp.com/MM/Gleich/wikipedia-20060925.tar.gz
+Do it wikipedia-20060925
+Compute : ./matrices//wikipedia-20060925/wikipedia-20060925.mtx
+==== Dense ===
+-- ARMv8 architecture detected
+-- USEDENSE = ON
+-- USEFLOAT = OFF
+-- SPLIT_NUMA = ON
+-- OPENMP_FOUND = TRUE
+-- CMAKE_CXX_FLAGS =  -march=native -Wextra -Wnon-virtual-dtor -Wshadow -Wpointer-arith -Wcast-qual -Wconversion  -Wall -Wno-sign-conversion -pedantic -Woverloaded-virtual -Wpointer-arith -Wcast-qual -Wconversion -Wno-error -march=armv8.2-a+sve -fopenmp
+-- USE_ARMPL  = OFF
+-- Add example load_mm_and_compare for /home/ri-bbramas/spc5-arm-sve/examples/load_mm_and_compare.cpp
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ri-bbramas/spc5-arm-sve/build
+Scanning dependencies of target spc5
+[ 20%] Building CXX object CMakeFiles/spc5.dir/src/spc5.cpp.o
+[ 40%] Building CXX object CMakeFiles/spc5.dir/src/spc5_interface.cpp.o
+[ 60%] Linking CXX static library libspc5.a
+[ 60%] Built target spc5
+Scanning dependencies of target load_mm_and_compare
+[ 80%] Building CXX object CMakeFiles/load_mm_and_compare.dir/examples/load_mm_and_compare.cpp.o
+[100%] Linking CXX executable load_mm_and_compare
+[100%] Built target load_mm_and_compare
+-- ARMv8 architecture detected
+-- USEDENSE = ON
+-- USEFLOAT = ON
+-- SPLIT_NUMA = ON
+-- OPENMP_FOUND = TRUE
+-- CMAKE_CXX_FLAGS =  -march=native -Wextra -Wnon-virtual-dtor -Wshadow -Wpointer-arith -Wcast-qual -Wconversion  -Wall -Wno-sign-conversion -pedantic -Woverloaded-virtual -Wpointer-arith -Wcast-qual -Wconversion -Wno-error -march=armv8.2-a+sve -fopenmp
+-- USE_ARMPL  = OFF
+-- Add example load_mm_and_compare for /home/ri-bbramas/spc5-arm-sve/examples/load_mm_and_compare.cpp
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/ri-bbramas/spc5-arm-sve/build
+Scanning dependencies of target spc5
+[ 20%] Building CXX object CMakeFiles/spc5.dir/src/spc5.cpp.o
+[ 40%] Building CXX object CMakeFiles/spc5.dir/src/spc5_interface.cpp.o
+[ 60%] Linking CXX static library libspc5.a
+[ 60%] Built target spc5
+Scanning dependencies of target load_mm_and_compare
+[ 80%] Building CXX object CMakeFiles/load_mm_and_compare.dir/examples/load_mm_and_compare.cpp.o
+[100%] Linking CXX executable load_mm_and_compare
+[100%] Built target load_mm_and_compare
