@@ -2,7 +2,6 @@
 #PBS -q a64fx
 #PBS -l select=1:ncpus=48,place=scatter
 #PBS -l walltime=24:00:00
-#PBS -l naccesspolicy=SINGLEJOB -n
 
 set -x
 
