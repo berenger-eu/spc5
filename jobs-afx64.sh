@@ -59,8 +59,8 @@ urls_big=(
     "https://suitesparse-collection-website.herokuapp.com/MM/Fluorem/HV15R.tar.gz"
 )
 
-urls=$urls_normal
-# urls=$urls_big
+urls=("${urls_normal[@]}")
+# urls=("${urls_big[@]}")
 
 working_dir="./matrices/"
 
