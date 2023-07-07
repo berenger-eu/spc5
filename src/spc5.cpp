@@ -45,7 +45,8 @@ void core_SPC5_1rVc_Spmv_double(const long int nbRows, const int* rowSizes,
 void core_SPC5_1rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
                                 const unsigned char* headers,
                                 const double* values,
-                                const double* x, double* y){
+                                const double* x, double* y,
+                                const int* rowptr){
     //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b64();
     const svfloat64_t zeros = svdup_n_f64(0);
@@ -53,19 +54,41 @@ void core_SPC5_1rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
                                                1<<4, 1<<5, 1<<6, 1<<7};
     const svuint64_t maskFilter = svld1_u64(true_vec, maskFilterValues);
 
-    for (int idxRow = 0; idxRow < nbRows; ++idxRow) {
+    const long int nbRows4 = (nbRows - (nbRows%4));
 
-        svfloat64_t sum_vec = zeros;
-        double sum = 0;
+    for (int idxRow = 0; idxRow < nbRows4; idxRow += 4) {
 
-        for (int idxBlock = rowSizes[idxRow]; idxBlock < rowSizes[idxRow+1]; ++idxBlock) {
-            const int idxCol = *((const int *)headers);
-            const unsigned char mask = headers[4];
-            if(mask == 1){
-                sum += x[idxCol] * values[0];
-                values += 1;
-            }
-            else {
+        svfloat64_t sum_vec0 = zeros;
+        svfloat64_t sum_vec1 = zeros;
+        svfloat64_t sum_vec2 = zeros;
+        svfloat64_t sum_vec3 = zeros;
+
+        bool workTodo = true;
+        int idxBlock0 = rowSizes[idxRow];
+        int idxBlock1 = rowSizes[idxRow+1];
+        int idxBlock2 = rowSizes[idxRow+2];
+        int idxBlock3 = rowSizes[idxRow+3];
+
+        const unsigned char* headers0 = &headers[5*idxBlock0];
+        const unsigned char* headers1 = &headers[5*idxBlock1];
+        const unsigned char* headers2 = &headers[5*idxBlock2];
+        const unsigned char* headers3 = &headers[5*idxBlock3];
+
+        const double* values0 = &values[rowptr[idxRow]];
+        const double* values1 = &values[rowptr[idxRow+1]];
+        const double* values2 = &values[rowptr[idxRow+2]];
+        const double* values3 = &values[rowptr[idxRow+3]];
+
+        while(workTodo){
+            workTodo = false;
+
+            if(idxBlock0 < rowSizes[idxRow+1]){
+                idxBlock0 += 1;
+                workTodo |= (idxBlock0 < rowSizes[idxRow+1]);
+
+                const int idxCol = *((const int *)headers0);
+                const unsigned char mask = headers0[4];
+
                 const svuint64_t maskInVec = svdup_n_u64(mask);
 
                 const svbool_t mask_vec = svcmpne_n_u64(true_vec, svand_u64_z(true_vec, maskFilter, maskInVec), 0);
@@ -74,16 +97,91 @@ void core_SPC5_1rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
 
                 const svfloat64_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
 
-                const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values);
-                values += increment;
+                const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values0);
+                values0 += increment;
 
-                sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
+                sum_vec0 = svmla_m(true_vec, sum_vec0, block, xvals);
+
+                headers0 += 5;
             }
-            headers += 5;
+            if(idxBlock1 < rowSizes[idxRow+2]){
+                idxBlock1 += 1;
+                workTodo |= (idxBlock1 < rowSizes[idxRow+2]);
+
+                const int idxCol = *((const int *)headers1);
+                const unsigned char mask = headers1[4];
+
+                const svuint64_t maskInVec = svdup_n_u64(mask);
+
+                const svbool_t mask_vec = svcmpne_n_u64(true_vec, svand_u64_z(true_vec, maskFilter, maskInVec), 0);
+
+                const uint64_t increment = svcntp_b64(mask_vec, mask_vec);
+
+                const svfloat64_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
+
+                const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values1);
+                values1 += increment;
+
+                sum_vec1 = svmla_m(true_vec, sum_vec1, block, xvals);
+
+                headers1 += 5;
+            }
+            if(idxBlock2 < rowSizes[idxRow+3]){
+                idxBlock2 += 1;
+                workTodo |= (idxBlock2 < rowSizes[idxRow+3]);
+
+                const int idxCol = *((const int *)headers2);
+                const unsigned char mask = headers2[4];
+
+                const svuint64_t maskInVec = svdup_n_u64(mask);
+
+                const svbool_t mask_vec = svcmpne_n_u64(true_vec, svand_u64_z(true_vec, maskFilter, maskInVec), 0);
+
+                const uint64_t increment = svcntp_b64(mask_vec, mask_vec);
+
+                const svfloat64_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
+
+                const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values2);
+                values2 += increment;
+
+                sum_vec2 = svmla_m(true_vec, sum_vec2, block, xvals);
+
+                headers2 += 5;
+            }
+            if(idxBlock3 < rowSizes[idxRow+4]){
+                idxBlock3 += 1;
+                workTodo |= (idxBlock3 < rowSizes[idxRow+4]);
+
+                const int idxCol = *((const int *)headers3);
+                const unsigned char mask = headers3[4];
+
+                const svuint64_t maskInVec = svdup_n_u64(mask);
+
+                const svbool_t mask_vec = svcmpne_n_u64(true_vec, svand_u64_z(true_vec, maskFilter, maskInVec), 0);
+
+                const uint64_t increment = svcntp_b64(mask_vec, mask_vec);
+
+                const svfloat64_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
+
+                const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values3);
+                values3 += increment;
+
+                sum_vec3 = svmla_m(true_vec, sum_vec3, block, xvals);
+
+                headers3 += 5;
+            }
         }
 
-        y[idxRow] += svaddv(true_vec, sum_vec) + sum;
+        y[idxRow] += svaddv(true_vec, sum_vec0);
+        y[idxRow+1] += svaddv(true_vec, sum_vec1);
+        y[idxRow+2] += svaddv(true_vec, sum_vec2);
+        y[idxRow+3] += svaddv(true_vec, sum_vec3);
     }
+
+    core_SPC5_1rVc_Spmv_double(nbRows-nbRows4, &rowSizes[nbRows4],
+                               &headers[rowSizes[nbRows4]*5],
+                               &values[rowptr[nbRows4]],
+                               x, &y[nbRows4]);
 }
 
 
@@ -131,7 +229,8 @@ void core_SPC5_1rVc_Spmv_float(const long int nbRows, const int* rowSizes,
 void core_SPC5_1rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
                                const unsigned char* headers,
                                const float* values,
-                               const float* x, float* y){
+                               const float* x, float* y,
+                                  const int* rowptr){
     //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b32();
     const svfloat32_t zeros = svdup_n_f32(0);
@@ -141,19 +240,41 @@ void core_SPC5_1rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
                                                1<<12, 1<<13, 1<<14, 1<<15};
     const svuint32_t maskFilter = svld1_u32(true_vec, maskFilterValues);
 
-    for (int idxRow = 0; idxRow < nbRows; ++idxRow) {
+    const long int nbRows4 = (nbRows - (nbRows%4));
 
-        svfloat32_t sum_vec = zeros;
-        float sum = 0;
+    for (int idxRow = 0; idxRow < nbRows4; idxRow += 4) {
 
-        for (int idxBlock = rowSizes[idxRow]; idxBlock < rowSizes[idxRow+1]; ++idxBlock) {
-            const int idxCol = *((const int *)headers);
-            const unsigned short mask = *(const unsigned short*)&headers[4];
-            if( mask == 1 ){
-                sum += x[idxCol] * values[0];
-                values += 1;
-            }
-            else{
+        svfloat32_t sum_vec0 = zeros;
+        svfloat32_t sum_vec1 = zeros;
+        svfloat32_t sum_vec2 = zeros;
+        svfloat32_t sum_vec3 = zeros;
+
+        bool workTodo = true;
+        int idxBlock0 = rowSizes[idxRow];
+        int idxBlock1 = rowSizes[idxRow+1];
+        int idxBlock2 = rowSizes[idxRow+2];
+        int idxBlock3 = rowSizes[idxRow+3];
+
+        const unsigned char* headers0 = &headers[6*idxBlock0];
+        const unsigned char* headers1 = &headers[6*idxBlock1];
+        const unsigned char* headers2 = &headers[6*idxBlock2];
+        const unsigned char* headers3 = &headers[6*idxBlock3];
+
+        const float* values0 = &values[rowptr[idxRow]];
+        const float* values1 = &values[rowptr[idxRow+1]];
+        const float* values2 = &values[rowptr[idxRow+2]];
+        const float* values3 = &values[rowptr[idxRow+3]];
+
+        while(workTodo){
+            workTodo = false;
+
+            if(idxBlock0 < rowSizes[idxRow+1]){
+                idxBlock0 += 1;
+                workTodo |= (idxBlock0 < rowSizes[idxRow+1]);
+
+                const int idxCol = *((const int *)headers0);
+                const unsigned short mask = *(const unsigned short*)&headers0[4];
+
                 const svuint32_t maskInVec = svdup_n_u32(mask);
 
                 const svbool_t mask_vec = svcmpne_n_u32(true_vec, svand_u32_z(true_vec, maskFilter, maskInVec), 0);
@@ -162,16 +283,91 @@ void core_SPC5_1rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 const svfloat32_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
 
-                const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values);
-                values += increment;
+                const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values0);
+                values0 += increment;
 
-                sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
+                sum_vec0 = svmla_m(true_vec, sum_vec0, block, xvals);
+
+                headers0 += 6;
             }
-            headers += 6;
+            if(idxBlock1 < rowSizes[idxRow+2]){
+                idxBlock1 += 1;
+                workTodo |= (idxBlock1 < rowSizes[idxRow+2]);
+
+                const int idxCol = *((const int *)headers1);
+                const unsigned short mask = *(const unsigned short*)&headers1[4];
+
+                const svuint32_t maskInVec = svdup_n_u32(mask);
+
+                const svbool_t mask_vec = svcmpne_n_u32(true_vec, svand_u32_z(true_vec, maskFilter, maskInVec), 0);
+
+                const uint32_t increment = svcntp_b32(mask_vec, mask_vec);
+
+                const svfloat32_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
+
+                const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values1);
+                values1 += increment;
+
+                sum_vec1 = svmla_m(true_vec, sum_vec1, block, xvals);
+
+                headers1 += 6;
+            }
+            if(idxBlock2 < rowSizes[idxRow+3]){
+                idxBlock2 += 1;
+                workTodo |= (idxBlock2 < rowSizes[idxRow+3]);
+
+                const int idxCol = *((const int *)headers2);
+                const unsigned short mask = *(const unsigned short*)&headers2[4];
+
+                const svuint32_t maskInVec = svdup_n_u32(mask);
+
+                const svbool_t mask_vec = svcmpne_n_u32(true_vec, svand_u32_z(true_vec, maskFilter, maskInVec), 0);
+
+                const uint32_t increment = svcntp_b32(mask_vec, mask_vec);
+
+                const svfloat32_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
+
+                const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values2);
+                values2 += increment;
+
+                sum_vec2 = svmla_m(true_vec, sum_vec2, block, xvals);
+
+                headers2 += 6;
+            }
+            if(idxBlock3 < rowSizes[idxRow+4]){
+                idxBlock3 += 1;
+                workTodo |= (idxBlock3 < rowSizes[idxRow+4]);
+
+                const int idxCol = *((const int *)headers3);
+                const unsigned short mask = *(const unsigned short*)&headers3[4];
+
+                const svuint32_t maskInVec = svdup_n_u32(mask);
+
+                const svbool_t mask_vec = svcmpne_n_u32(true_vec, svand_u32_z(true_vec, maskFilter, maskInVec), 0);
+
+                const uint32_t increment = svcntp_b32(mask_vec, mask_vec);
+
+                const svfloat32_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
+
+                const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values3);
+                values3 += increment;
+
+                sum_vec3 = svmla_m(true_vec, sum_vec3, block, xvals);
+
+                headers3 += 6;
+            }
         }
 
-        y[idxRow] += svaddv(true_vec, sum_vec) +  sum;
+        y[idxRow] += svaddv(true_vec, sum_vec0);
+        y[idxRow+1] += svaddv(true_vec, sum_vec1);
+        y[idxRow+2] += svaddv(true_vec, sum_vec2);
+        y[idxRow+3] += svaddv(true_vec, sum_vec3);
     }
+
+    core_SPC5_1rVc_Spmv_float(nbRows-nbRows4, &rowSizes[nbRows4],
+                               &headers[rowSizes[nbRows4]*5],
+                               &values[rowptr[nbRows4]],
+                               x, &y[nbRows4]);
 }
 
 

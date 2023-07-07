@@ -63,6 +63,7 @@ struct SPC5Mat {
     std::unique_ptr<ValueType[]> values;  //< the values (of size numberOfNNZ)
     std::unique_ptr<int[]> rowsSize;//< the usual "rowsSize/rowptr" (of size numberOfRows+1)
     std::unique_ptr<int[]> valuesColumnIndexes;//< the colidx of each NNZ (of size numberOfNNZ)
+    std::unique_ptr<int[]> rowsSizeCpy;//< Copy of the usual "rowsSize/rowptr" (of size numberOfRows+1)
 
     // For the SPC5 format
     std::unique_ptr<unsigned char[]> blocksColumnIndexesWithMasks;// Specific for each storage
@@ -181,6 +182,9 @@ void core_CSR_to_SPC5_rV2c(SPC5Mat<ValueType>* csr){
     std::vector<unsigned char> blocks;
     blocks.reserve((sizeof(int)+sizeof(short))*csr->numberOfNNZ/ValPerVec<ValueType>::size);
 
+    csr->rowsSizeCpy.reset(new int[csr->numberOfRows+1]);
+    memcpy(csr->rowsSizeCpy.get(), csr->rowsSize.get(), sizeof(int)*(csr->numberOfRows+1));
+
     std::unique_ptr<ValueType[]> newValues(new ValueType[csr->numberOfNNZ]);
     int globalIdxValues = 0;
 
@@ -253,6 +257,9 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
 
     std::unique_ptr<ValueType[]> newValues(new ValueType[csr->numberOfNNZ]);
     int globalIdxValues = 0;
+
+    csr->rowsSizeCpy.reset(new int[csr->numberOfRows+1]);
+    memcpy(csr->rowsSizeCpy.get(), csr->rowsSize.get(), sizeof(int)*(csr->numberOfRows+1));
 
     int previousNbBlocks = 0;
     for(int idxRow = 0 ; idxRow < csr->numberOfRows ; idxRow += nbRowsPerBlock){
@@ -681,6 +688,11 @@ inline void CSR_to_SPC5_1rVc(SPC5Mat<ValueType>* csr){
     std::vector<unsigned char> blocks;
     blocks.reserve((sizeof(int)+sizeof(short))*csr->numberOfNNZ/ValPerVec<ValueType>::size);
 
+
+    csr->rowsSizeCpy.reset(new int[csr->numberOfRows+1]);
+    memcpy(csr->rowsSizeCpy.get(), csr->rowsSize.get(), sizeof(int)*(csr->numberOfRows+1));
+
+
     int previousNbBlocks = 0;
     for(int idxRow = 0 ; idxRow < csr->numberOfRows ; ++idxRow){
         int currentNbBlocks = 0;
@@ -766,11 +778,13 @@ inline void SPC5_1rVc_Spmv<float>(const SPC5Mat<float>& mat, const float x[], fl
 extern "C" void core_SPC5_1rVc_Spmv_double_v2(const long int nbRows, const int* rowsSizes,
                                            const unsigned char* blocksColumnIndexesWithMasks,
                                            const double* values,
-                                           const double* x, double* y);
+                                           const double* x, double* y,
+                                              const int* rowptr);
 extern "C" void core_SPC5_1rVc_Spmv_float_v2(const long int nbRows, const int* rowsSizes,
                                           const unsigned char* blocksColumnIndexesWithMasks,
                                           const float* values,
-                                          const float* x, float* y);
+                                          const float* x, float* y,
+                                             const int* rowptr);
 
 template <class ValueType>
 inline void SPC5_1rVc_Spmv_v2(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[]);
@@ -780,7 +794,7 @@ inline void SPC5_1rVc_Spmv_v2<double>(const SPC5Mat<double>& mat, const double x
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_1rVc_WT);
     core_SPC5_1rVc_Spmv_double_v2(mat.numberOfRows, mat.rowsSize.get(),
                                mat.blocksColumnIndexesWithMasks.get(), mat.values.get(),
-                               x, y);
+                                  x, y, mat.rowsSizeCpy.get());
 }
 
 template <>
@@ -788,7 +802,7 @@ inline void SPC5_1rVc_Spmv_v2<float>(const SPC5Mat<float>& mat, const float x[],
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_1rVc_WT);
     core_SPC5_1rVc_Spmv_float_v2(mat.numberOfRows, mat.rowsSize.get(),
                               mat.blocksColumnIndexesWithMasks.get(), mat.values.get(),
-                              x, y);
+                              x, y, mat.rowsSizeCpy.get());
 }
 
 
