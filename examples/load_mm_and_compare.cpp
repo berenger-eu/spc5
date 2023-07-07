@@ -379,7 +379,7 @@ int main(int argc, char** argv){
 #ifndef USEDENSE
     loadMM<ValueType>(argv[1], &values, &nbRows, &nbCols, &nbValues);
 #else
-    builddense<ValueType>(2048, &values, &nbRows, &nbCols, &nbValues);
+    builddense<ValueType>(128, &values, &nbRows, &nbCols, &nbValues);
 #endif
 
     std::cout << "-> number of rows = " << nbRows << std::endl;

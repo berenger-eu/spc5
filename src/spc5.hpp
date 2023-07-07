@@ -1327,11 +1327,13 @@ inline void SPC5_4rVc_Spmv<float>(const SPC5Mat<float>& mat, const float x[], fl
 extern "C" void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowsSizes,
                                            const unsigned char* blocksColumnIndexesWithMasks,
                                            const double* values,
-                                           const double* x, double* y);
+                                           const double* x, double* y,
+                                              const int* rowptr);
 extern "C" void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowsSizes,
                                           const unsigned char* blocksColumnIndexesWithMasks,
                                           const float* values,
-                                          const float* x, float* y);
+                                          const float* x, float* y,
+                                             const int* rowptr);
 
 template <class ValueType>
 inline void SPC5_4rVc_Spmv_v2(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[]);
@@ -1341,7 +1343,7 @@ inline void SPC5_4rVc_Spmv_v2<double>(const SPC5Mat<double>& mat, const double x
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_4rVc);
     core_SPC5_4rVc_Spmv_double_v2(mat.numberOfRows, mat.rowsSize.get(),
                                mat.blocksColumnIndexesWithMasks.get(), mat.values.get(),
-                               x, y);
+                                  x, y, mat.rowsSizeCpy.get());
 }
 
 template <>
@@ -1349,7 +1351,7 @@ inline void SPC5_4rVc_Spmv_v2<float>(const SPC5Mat<float>& mat, const float x[],
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_4rVc);
     core_SPC5_4rVc_Spmv_float_v2(mat.numberOfRows, mat.rowsSize.get(),
                               mat.blocksColumnIndexesWithMasks.get(), mat.values.get(),
-                              x, y);
+                              x, y, mat.rowsSizeCpy.get());
 }
 
 
