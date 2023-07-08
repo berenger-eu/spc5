@@ -41,7 +41,7 @@ void* spc5_init_t(const SPC5_MATRIX_TYPE_C inFormat, const int rows, const int c
             }
             else{
                 printf("[SPC5] Invalid SPC5_FORMAT = %s\n", strFormat);
-                printf("[SPC5] Should be: 1WT, 22WT, 22, 2, 42, 4, 8\n");
+                printf("[SPC5] Should be: 1WT, 2, 4\n");
             }
         }
     }
@@ -150,104 +150,4 @@ void spc5_spmv_double_omp(void* ptr, const double* x, double* y){
     spc5_spmv_omp_core<double>(ptr, x, y);
 }
 #endif
-
-//////////////////////////////////////////////////////////////////////////////
-/// Redefine New operators to have aligned memory
-//////////////////////////////////////////////////////////////////////////////
-
-#include <cstdlib>
-#include <new>
-
-// Regular scalar new
-void* operator new(std::size_t n);
-void* operator new[]( std::size_t n );
-void* operator new  ( std::size_t n, const std::nothrow_t& tag);
-void* operator new[] ( std::size_t n, const std::nothrow_t& tag);
-
-// Regular scalar delete
-void operator delete(void* p) noexcept;
-void operator delete[](void* p) noexcept;
-void operator delete  ( void* p, const std::nothrow_t& /*tag*/);
-void operator delete[]( void* p, const std::nothrow_t& /*tag*/);
-
-// Default alignement for the complete application by redirecting the new operator
-static const int DefaultMemAlignement = 64;
-
-namespace aligned_malloc {
-
-template <std::size_t AlignementValue>
-inline void* malloc(const std::size_t inSize){
-    if(inSize == 0){
-        return nullptr;
-    }
-
-    // Ensure it is a power of 2
-    static_assert(AlignementValue != 0 && ((AlignementValue-1)&AlignementValue) == 0, "Alignement must be a power of 2");
-    // We will need to store the adress of the real blocks
-    const std::size_t sizeForAddress = (AlignementValue < sizeof(unsigned char*)? sizeof(unsigned char*) : AlignementValue);
-
-    unsigned char* allocatedMemory      = reinterpret_cast<unsigned char*>(std::malloc(inSize + AlignementValue-1 + sizeForAddress));
-    unsigned char* alignedMemoryAddress = reinterpret_cast<unsigned char*>((reinterpret_cast<std::size_t>(allocatedMemory) + AlignementValue-1 + sizeForAddress) & ~static_cast<std::size_t>(AlignementValue-1));
-    unsigned char* ptrForAddress        = (alignedMemoryAddress - sizeof(unsigned char*));
-
-    // Save allocated adress
-    *reinterpret_cast<unsigned char**>(ptrForAddress) = allocatedMemory;
-    // Return aligned address
-    return reinterpret_cast<void*>(alignedMemoryAddress);
-}
-
-inline void free(void* ptrToFree){
-    if( ptrToFree ){
-        unsigned char** storeRealAddress = reinterpret_cast<unsigned char**>(reinterpret_cast<unsigned char*>(ptrToFree) - sizeof(unsigned char*));
-        std::free(*storeRealAddress);
-    }
-}
-}
-
-
-// Regular scalar new
-void* operator new(std::size_t n) {
-    void* const allocated = aligned_malloc::malloc<DefaultMemAlignement>(n);
-    if(allocated){
-        return allocated;
-    }
-    throw std::bad_alloc();
-    return allocated;
-}
-
-void* operator new[]( std::size_t n ) {
-    void* const allocated = aligned_malloc::malloc<DefaultMemAlignement>(n);
-    if(allocated){
-        return allocated;
-    }
-    throw std::bad_alloc();
-    return allocated;
-}
-
-void* operator new  ( std::size_t n, const std::nothrow_t& /*tag*/){
-    void* const allocated = aligned_malloc::malloc<DefaultMemAlignement>(n);
-    return allocated;
-}
-
-void* operator new[] ( std::size_t n, const std::nothrow_t& /*tag*/){
-    void* const allocated = aligned_malloc::malloc<DefaultMemAlignement>(n);
-    return allocated;
-}
-
-// Regular scalar delete
-void operator delete(void* p)  noexcept {
-    aligned_malloc::free(p);
-}
-
-void operator delete[](void* p) noexcept {
-    aligned_malloc::free(p);
-}
-
-void operator delete  ( void* p, const std::nothrow_t& /*tag*/) {
-    aligned_malloc::free(p);
-}
-
-void operator delete[]( void* p, const std::nothrow_t& /*tag*/) {
-    aligned_malloc::free(p);
-}
 
