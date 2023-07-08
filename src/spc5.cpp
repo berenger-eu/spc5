@@ -383,12 +383,13 @@ void core_SPC5_2rVc_Spmv_double(const long int nbRows, const int* rowSizes,
                                                1<<4, 1<<5, 1<<6, 1<<7};
     const svuint64_t maskFilter = svld1_u64(true_vec, maskFilterValues);
 
-    for (int idxRow = 0; idxRow < nbRows; ++idxRow) {
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 2) {
+        const int idxRowBlock = idxRow/8;
 
         svfloat64_t sum_vec = zeros;
         svfloat64_t sum_vec_1 = zeros;
 
-        for (int idxBlock = rowSizes[idxRow]; idxBlock < rowSizes[idxRow+1]; ++idxBlock) {
+        for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock+1]; ++idxBlock) {
             const int idxCol = *((const int *)headers);
             const unsigned char mask = headers[4];
             const unsigned char mask_1 = headers[5];
@@ -438,6 +439,7 @@ void core_SPC5_2rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
     const long int nbRows4 = (nbRows - (nbRows%8));
 
     for (int idxRow = 0; idxRow < nbRows4; idxRow += 8) {
+        const int idxRowBlock = idxRow/8;
 
         svfloat64_t sum_vec0 = zeros;
         svfloat64_t sum_vec_10 = zeros;
@@ -449,10 +451,10 @@ void core_SPC5_2rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
         svfloat64_t sum_vec_13 = zeros;
 
         bool workTodo = true;
-        int idxBlock0 = rowSizes[idxRow];
-        int idxBlock1 = rowSizes[idxRow+1];
-        int idxBlock2 = rowSizes[idxRow+2];
-        int idxBlock3 = rowSizes[idxRow+3];
+        int idxBlock0 = rowSizes[idxRowBlock];
+        int idxBlock1 = rowSizes[idxRowBlock+1];
+        int idxBlock2 = rowSizes[idxRowBlock+2];
+        int idxBlock3 = rowSizes[idxRowBlock+3];
 
         const unsigned char* headers0 = &headers[6*idxBlock0];
         const unsigned char* headers1 = &headers[6*idxBlock1];
@@ -466,9 +468,9 @@ void core_SPC5_2rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
         while(workTodo){
             workTodo = false;
 
-            if(idxBlock0 < rowSizes[idxRow+1]){
+            if(idxBlock0 < rowSizes[idxRowBlock+1]){
                 idxBlock0 += 1;
-                workTodo |= (idxBlock0 < rowSizes[idxRow+1]);
+                workTodo |= (idxBlock0 < rowSizes[idxRowBlock+1]);
 
                 const int idxCol = *((const int *)headers0);
                 const unsigned char mask = headers0[4];
@@ -497,9 +499,9 @@ void core_SPC5_2rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
 
                 headers0 += 6;
             }
-            if(idxBlock1 < rowSizes[idxRow+2]){
+            if(idxBlock1 < rowSizes[idxRowBlock+2]){
                 idxBlock1 += 1;
-                workTodo |= (idxBlock1 < rowSizes[idxRow+2]);
+                workTodo |= (idxBlock1 < rowSizes[idxRowBlock+2]);
 
                 const int idxCol = *((const int *)headers1);
                 const unsigned char mask = headers1[4];
@@ -528,9 +530,9 @@ void core_SPC5_2rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
 
                 headers1 += 6;
             }
-            if(idxBlock2 < rowSizes[idxRow+3]){
+            if(idxBlock2 < rowSizes[idxRowBlock+3]){
                 idxBlock2 += 1;
-                workTodo |= (idxBlock2 < rowSizes[idxRow+3]);
+                workTodo |= (idxBlock2 < rowSizes[idxRowBlock+3]);
 
                 const int idxCol = *((const int *)headers2);
                 const unsigned char mask = headers2[4];
@@ -559,9 +561,9 @@ void core_SPC5_2rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
 
                 headers2 += 6;
             }
-            if(idxBlock3 < rowSizes[idxRow+4]){
+            if(idxBlock3 < rowSizes[idxRowBlock+4]){
                 idxBlock3 += 1;
-                workTodo |= (idxBlock3 < rowSizes[idxRow+4]);
+                workTodo |= (idxBlock3 < rowSizes[idxRowBlock+4]);
 
                 const int idxCol = *((const int *)headers3);
                 const unsigned char mask = headers3[4];
@@ -622,12 +624,13 @@ void core_SPC5_2rVc_Spmv_float(const long int nbRows, const int* rowSizes,
                                                 1<<12, 1<<13, 1<<14, 1<<15};
     const svuint32_t maskFilter = svld1_u32(true_vec, maskFilterValues);
 
-    for (int idxRow = 0; idxRow < nbRows; ++idxRow) {
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 2) {
+        const int idxRowBlock = idxRow/2;
 
         svfloat32_t sum_vec = zeros;
         svfloat32_t sum_vec_1 = zeros;
 
-        for (int idxBlock = rowSizes[idxRow]; idxBlock < rowSizes[idxRow+1]; ++idxBlock) {
+        for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock+1]; ++idxBlock) {
             const int idxCol = *((const int *)headers);
             const unsigned short mask = *(const unsigned short*)&headers[4];
             const unsigned short mask_1 = *(const unsigned short*)&headers[6];
@@ -678,6 +681,7 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
     const long int nbRows4 = (nbRows - (nbRows%8));
 
     for (int idxRow = 0; idxRow < nbRows4; idxRow += 8) {
+        const int idxRowBlock = idxRow/8;
 
         svfloat32_t sum_vec0 = zeros;
         svfloat32_t sum_vec_10 = zeros;
@@ -689,10 +693,10 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         svfloat32_t sum_vec_13 = zeros;
 
         bool workTodo = true;
-        int idxBlock0 = rowSizes[idxRow];
-        int idxBlock1 = rowSizes[idxRow+1];
-        int idxBlock2 = rowSizes[idxRow+2];
-        int idxBlock3 = rowSizes[idxRow+3];
+        int idxBlock0 = rowSizes[idxRowBlock];
+        int idxBlock1 = rowSizes[idxRowBlock+1];
+        int idxBlock2 = rowSizes[idxRowBlock+2];
+        int idxBlock3 = rowSizes[idxRowBlock+3];
 
         const unsigned char* headers0 = &headers[8*idxBlock0];
         const unsigned char* headers1 = &headers[8*idxBlock1];
@@ -707,9 +711,9 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         while(workTodo){
             workTodo = false;
 
-            if(idxBlock0 < rowSizes[idxRow+1]){
+            if(idxBlock0 < rowSizes[idxRowBlock+1]){
                 idxBlock0 += 1;
-                workTodo |= (idxBlock0 < rowSizes[idxRow+1]);
+                workTodo |= (idxBlock0 < rowSizes[idxRowBlock+1]);
                 const int idxCol = *((const int *)headers0);
                 const unsigned short mask = *(const unsigned short*)&headers0[4];
                 const unsigned short mask_1 = *(const unsigned short*)&headers0[6];
@@ -737,9 +741,9 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 headers0 += 8;
             }
-            if(idxBlock1 < rowSizes[idxRow+2]){
+            if(idxBlock1 < rowSizes[idxRowBlock+2]){
                 idxBlock1 += 1;
-                workTodo |= (idxBlock1 < rowSizes[idxRow+2]);
+                workTodo |= (idxBlock1 < rowSizes[idxRowBlock+2]);
 
                 const int idxCol = *((const int *)headers1);
                 const unsigned short mask = *(const unsigned short*)&headers1[4];
@@ -768,9 +772,9 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 headers1 += 8;
             }
-            if(idxBlock2 < rowSizes[idxRow+3]){
+            if(idxBlock2 < rowSizes[idxRowBlock+3]){
                 idxBlock2 += 1;
-                workTodo |= (idxBlock2 < rowSizes[idxRow+3]);
+                workTodo |= (idxBlock2 < rowSizes[idxRowBlock+3]);
 
                 const int idxCol = *((const int *)headers2);
                 const unsigned short mask = *(const unsigned short*)&headers2[4];
@@ -799,9 +803,9 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 headers2 += 8;
             }
-            if(idxBlock3 < rowSizes[idxRow+4]){
+            if(idxBlock3 < rowSizes[idxRowBlock+4]){
                 idxBlock3 += 1;
-                workTodo |= (idxBlock3 < rowSizes[idxRow+4]);
+                workTodo |= (idxBlock3 < rowSizes[idxRowBlock+4]);
                 const int idxCol = *((const int *)headers3);
                 const unsigned short mask = *(const unsigned short*)&headers3[4];
                 const unsigned short mask_1 = *(const unsigned short*)&headers3[6];
@@ -830,6 +834,13 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
                 headers3 += 8;
             }
         }
+        assert(idxBlock0 == rowSizes[idxRowBlock+1]);
+        assert(idxBlock1 == rowSizes[idxRowBlock+2]);
+        assert(idxBlock2 == rowSizes[idxRowBlock+3]);
+
+        assert(values0 == &values[rowptr[idxRow+2]]);
+        assert(values1 == &values[rowptr[idxRow+4]]);
+        assert(values2 == &values[rowptr[idxRow+6]]);
 
         y[idxRow] += svaddv(true_vec, sum_vec0);
         y[idxRow+1] += svaddv(true_vec, sum_vec_10);
@@ -861,14 +872,15 @@ void core_SPC5_4rVc_Spmv_double(const long int nbRows, const int* rowSizes,
                                                1<<4, 1<<5, 1<<6, 1<<7};
     const svuint64_t maskFilter = svld1_u64(true_vec, maskFilterValues);
 
-    for (int idxRow = 0; idxRow < nbRows; ++idxRow) {
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 4) {
+        const int idxRowBlock = idxRow/4;
         
         svfloat64_t sum_vec = zeros;
         svfloat64_t sum_vec_1 = zeros;
         svfloat64_t sum_vec_2 = zeros;
         svfloat64_t sum_vec_3 = zeros;
         
-        for (int idxBlock = rowSizes[idxRow]; idxBlock < rowSizes[idxRow+1]; ++idxBlock) {
+        for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock+1]; ++idxBlock) {
             const int idxCol = *((const int *)headers);
             const unsigned char mask = headers[4];
             const unsigned char mask_1 = headers[5];
@@ -940,6 +952,7 @@ void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
     const long int nbRows4 = (nbRows - (nbRows%16));
 
     for (int idxRow = 0; idxRow < nbRows4; idxRow += 16) {
+        const int idxRowBlock = idxRow/16;
 
         svfloat64_t sum_vec0 = zeros;
         svfloat64_t sum_vec_10 = zeros;
@@ -959,10 +972,10 @@ void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
         svfloat64_t sum_vec_33 = zeros;
 
         bool workTodo = true;
-        int idxBlock0 = rowSizes[idxRow];
-        int idxBlock1 = rowSizes[idxRow+1];
-        int idxBlock2 = rowSizes[idxRow+2];
-        int idxBlock3 = rowSizes[idxRow+3];
+        int idxBlock0 = rowSizes[idxRowBlock];
+        int idxBlock1 = rowSizes[idxRowBlock+1];
+        int idxBlock2 = rowSizes[idxRowBlock+2];
+        int idxBlock3 = rowSizes[idxRowBlock+3];
 
         const unsigned char* headers0 = &headers[8*idxBlock0];
         const unsigned char* headers1 = &headers[8*idxBlock1];
@@ -977,9 +990,9 @@ void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
         while(workTodo){
             workTodo = false;
 
-            if(idxBlock0 < rowSizes[idxRow+1]){
+            if(idxBlock0 < rowSizes[idxRowBlock+1]){
                 idxBlock0 += 1;
-                workTodo |= (idxBlock0 < rowSizes[idxRow+1]);
+                workTodo |= (idxBlock0 < rowSizes[idxRowBlock+1]);
 
                 const int idxCol = *((const int *)headers0);
                 const unsigned char mask = headers0[4];
@@ -1028,9 +1041,9 @@ void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
 
                 headers0 += 8;
             }
-            if(idxBlock1 < rowSizes[idxRow+2]){
+            if(idxBlock1 < rowSizes[idxRowBlock+2]){
                 idxBlock1 += 1;
-                workTodo |= (idxBlock1 < rowSizes[idxRow+2]);
+                workTodo |= (idxBlock1 < rowSizes[idxRowBlock+2]);
 
                 const int idxCol = *((const int *)headers1);
                 const unsigned char mask = headers1[4];
@@ -1079,9 +1092,9 @@ void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
 
                 headers1 += 8;
             }
-            if(idxBlock2 < rowSizes[idxRow+3]){
+            if(idxBlock2 < rowSizes[idxRowBlock+3]){
                 idxBlock2 += 1;
-                workTodo |= (idxBlock2 < rowSizes[idxRow+3]);
+                workTodo |= (idxBlock2 < rowSizes[idxRowBlock+3]);
 
                 const int idxCol = *((const int *)headers2);
                 const unsigned char mask = headers2[4];
@@ -1130,9 +1143,9 @@ void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
 
                 headers2 += 8;
             }
-            if(idxBlock3 < rowSizes[idxRow+4]){
+            if(idxBlock3 < rowSizes[idxRowBlock+4]){
                 idxBlock3 += 1;
-                workTodo |= (idxBlock3 < rowSizes[idxRow+4]);
+                workTodo |= (idxBlock3 < rowSizes[idxRowBlock+4]);
 
                 const int idxCol = *((const int *)headers3);
                 const unsigned char mask = headers3[4];
@@ -1220,14 +1233,15 @@ void core_SPC5_4rVc_Spmv_float(const long int nbRows, const int* rowSizes,
                                                 1<<12, 1<<13, 1<<14, 1<<15};
     const svuint32_t maskFilter = svld1_u32(true_vec, maskFilterValues);
 
-    for (int idxRow = 0; idxRow < nbRows; ++idxRow) {
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 4) {
+        const int idxRowBlock = idxRow/4;
 
         svfloat32_t sum_vec = zeros;
         svfloat32_t sum_vec_1 = zeros;
         svfloat32_t sum_vec_2 = zeros;
         svfloat32_t sum_vec_3 = zeros;
 
-        for (int idxBlock = rowSizes[idxRow]; idxBlock < rowSizes[idxRow+1]; ++idxBlock) {
+        for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock+1]; ++idxBlock) {
             const int idxCol = *((const int *)headers);
             const unsigned short mask = *(const unsigned short*)&headers[4];
             const unsigned short mask_1 = *(const unsigned short*)&headers[6];
@@ -1300,6 +1314,7 @@ void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
     const long int nbRows4 = (nbRows - (nbRows%16));
 
     for (int idxRow = 0; idxRow < nbRows4; idxRow += 16) {
+        const int idxRowBlock = idxRow/16;
 
         svfloat32_t sum_vec0 = zeros;
         svfloat32_t sum_vec_10 = zeros;
@@ -1319,10 +1334,10 @@ void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         svfloat32_t sum_vec_33 = zeros;
 
         bool workTodo = true;
-        int idxBlock0 = rowSizes[idxRow];
-        int idxBlock1 = rowSizes[idxRow+1];
-        int idxBlock2 = rowSizes[idxRow+2];
-        int idxBlock3 = rowSizes[idxRow+3];
+        int idxBlock0 = rowSizes[idxRowBlock];
+        int idxBlock1 = rowSizes[idxRowBlock+1];
+        int idxBlock2 = rowSizes[idxRowBlock+2];
+        int idxBlock3 = rowSizes[idxRowBlock+3];
 
         const unsigned char* headers0 = &headers[12*idxBlock0];
         const unsigned char* headers1 = &headers[12*idxBlock1];
@@ -1337,9 +1352,9 @@ void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         while(workTodo){
             workTodo = false;
 
-            if(idxBlock0 < rowSizes[idxRow+1]){
+            if(idxBlock0 < rowSizes[idxRowBlock+1]){
                 idxBlock0 += 1;
-                workTodo |= (idxBlock0 < rowSizes[idxRow+1]);
+                workTodo |= (idxBlock0 < rowSizes[idxRowBlock+1]);
 
                 const int idxCol = *((const int *)headers0);
                 const unsigned short mask = *(const unsigned short*)&headers0[4];
@@ -1388,9 +1403,9 @@ void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 headers0 += 12;
             }
-            if(idxBlock1 < rowSizes[idxRow+2]){
+            if(idxBlock1 < rowSizes[idxRowBlock+2]){
                 idxBlock1 += 1;
-                workTodo |= (idxBlock1 < rowSizes[idxRow+2]);
+                workTodo |= (idxBlock1 < rowSizes[idxRowBlock+2]);
 
                 const int idxCol = *((const int *)headers1);
                 const unsigned short mask = *(const unsigned short*)&headers1[4];
@@ -1439,9 +1454,9 @@ void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 headers1 += 12;
             }
-            if(idxBlock2 < rowSizes[idxRow+3]){
+            if(idxBlock2 < rowSizes[idxRowBlock+3]){
                 idxBlock2 += 1;
-                workTodo |= (idxBlock2 < rowSizes[idxRow+3]);
+                workTodo |= (idxBlock2 < rowSizes[idxRowBlock+3]);
 
                 const int idxCol = *((const int *)headers2);
                 const unsigned short mask = *(const unsigned short*)&headers2[4];
@@ -1490,9 +1505,9 @@ void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 headers2 += 12;
             }
-            if(idxBlock3 < rowSizes[idxRow+4]){
+            if(idxBlock3 < rowSizes[idxRowBlock+4]){
                 idxBlock3 += 1;
-                workTodo |= (idxBlock3 < rowSizes[idxRow+4]);
+                workTodo |= (idxBlock3 < rowSizes[idxRowBlock+4]);
 
                 const int idxCol = *((const int *)headers3);
                 const unsigned short mask = *(const unsigned short*)&headers3[4];

@@ -232,19 +232,13 @@ void core_CSR_to_SPC5_rV2c(SPC5Mat<ValueType>* csr){
             currentNbBlocks += 1;
         }
 
-        csr->rowsSize[idxRow] = previousNbBlocks;
+        csr->rowsSize[idxRow/nbRowsPerBlock] = previousNbBlocks;
         previousNbBlocks += currentNbBlocks;
-
-        for(int idxSubRow = 1 ; idxSubRow < nbRowsPerBlock ; ++idxSubRow){
-            if(idxRow + idxSubRow < csr->numberOfRows){
-                csr->rowsSize[idxRow+idxSubRow] = previousNbBlocks;
-            }
-        }
     }
 
     csr->numberOfBlocks = previousNbBlocks;
     csr->values = std::move(newValues);
-    csr->rowsSize[csr->numberOfRows] = previousNbBlocks;
+    csr->rowsSize[((csr->numberOfRows-1)/nbRowsPerBlock)+1] = previousNbBlocks;
     csr->blocksColumnIndexesWithMasks = (ToUniquePtr(blocks));
 }
 
@@ -304,19 +298,13 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
             currentNbBlocks += 1;
         }
 
-        csr->rowsSize[idxRow] = previousNbBlocks;
+        csr->rowsSize[idxRow/nbRowsPerBlock] = previousNbBlocks;
         previousNbBlocks += currentNbBlocks;
-
-        for(int idxSubRow = 1 ; idxSubRow < nbRowsPerBlock ; ++idxSubRow){
-            if(idxRow + idxSubRow < csr->numberOfRows){
-                csr->rowsSize[idxRow+idxSubRow] = previousNbBlocks;
-            }
-        }
     }
 
     csr->numberOfBlocks = previousNbBlocks;
     csr->values = std::move(newValues);
-    csr->rowsSize[csr->numberOfRows] = previousNbBlocks;
+    csr->rowsSize[((csr->numberOfRows-1)/nbRowsPerBlock)+1] = previousNbBlocks;
     csr->blocksColumnIndexesWithMasks = (ToUniquePtr(blocks));
 }
 
@@ -350,9 +338,10 @@ inline void core_SPC5_rV2c_Spmv_scalar(const SPC5Mat<ValueType>& mat, const Valu
 
     int idxVal = 0;
     for(int idxRow = 0 ; idxRow < mat.numberOfRows ; idxRow += nbRowsPerBlock){
+        const int idxRowBlock = idxRow/nbRowsPerBlock;
         ValueType sum[nbRowsPerBlock] = {0};
 
-        for(int idxBlock = mat.rowsSize[idxRow]; idxBlock < mat.rowsSize[idxRow+1] ; ++idxBlock){
+        for(int idxBlock = mat.rowsSize[idxRowBlock]; idxBlock < mat.rowsSize[idxRowBlock+1] ; ++idxBlock){
             const int idxCol = *(int*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock/2)];
 
             for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; idxRowBlock += 2){
@@ -383,7 +372,8 @@ template <class ValueType, int nbRowsPerBlock, class FuncType>
 inline void core_SPC5_rVc_iterate(SPC5Mat<ValueType>& mat, const FuncType&& func){
     int idxVal = 0;
     for(int idxRow = 0 ; idxRow < mat.numberOfRows ; idxRow += nbRowsPerBlock){
-        for(int idxBlock = mat.rowsSize[idxRow]; idxBlock < mat.rowsSize[idxRow+1] ; ++idxBlock){
+        const int idxRowBlock = idxRow/nbRowsPerBlock;
+        for(int idxBlock = mat.rowsSize[idxRowBlock]; idxBlock < mat.rowsSize[idxRowBlock+1] ; ++idxBlock){
             const int idxCol = *(int*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock)];
             for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; idxRowBlock += 1){
                 const typename SPC5Mat_Mask<ValueType>::type valMask = *(typename SPC5Mat_Mask<ValueType>::type*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock) + sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*(idxRowBlock)];
@@ -404,7 +394,8 @@ inline void core_SPC5_rV2c_iterate(SPC5Mat<ValueType>& mat, const FuncType&& fun
 
     int idxVal = 0;
     for(int idxRow = 0 ; idxRow < mat.numberOfRows ; idxRow += nbRowsPerBlock){
-        for(int idxBlock = mat.rowsSize[idxRow]; idxBlock < mat.rowsSize[idxRow+1] ; ++idxBlock){
+        const int idxRowBlock = idxRow/nbRowsPerBlock;
+        for(int idxBlock = mat.rowsSize[idxRowBlock]; idxBlock < mat.rowsSize[idxRowBlock+1] ; ++idxBlock){
             const int idxCol = *(int*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock/2)];
 
             for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; idxRowBlock += 2){
