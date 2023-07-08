@@ -1,3 +1,9 @@
+#ifdef __ARM_FEATURE_SVE
+#include <arm_sve.h>
+#else
+#include "farm_sve.h"
+#endif /* __ARM_FEATURE_SVE */
+
 #include "spc5.hpp"
 
 //////////////////////////////////////////////////////////////////////////

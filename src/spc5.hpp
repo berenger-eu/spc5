@@ -7,12 +7,8 @@
 #include <limits>       // For <int>::max
 #include <vector>       // For vector class
 #include <stdexcept>    // For invalid argument
+#include <cstring>
 
-#ifdef __ARM_FEATURE_SVE
-#include <arm_sve.h>
-#else
-#include "farm_sve.h"
-#endif /* __ARM_FEATURE_SVE */
 
 //////////////////////////////////////////////////////////////////////////////
 /// Matrix structure
