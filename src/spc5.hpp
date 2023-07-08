@@ -26,12 +26,8 @@ enum SPC5_MATRIX_TYPE{
     UNDEFINED_FORMAT,
     FORMAT_CSR,
     FORMAT_1rVc_WT,
-    FORMAT_2rV2c_WT,
-    FORMAT_2rV2c,
     FORMAT_2rVc,
-    FORMAT_4rV2c,
-    FORMAT_4rVc,
-    FORMAT_8rV2c
+    FORMAT_4rVc
 };
 
 enum SPC5_VEC_PADDING {
@@ -173,75 +169,6 @@ std::unique_ptr<ValueType[]> ToUniquePtr(const std::vector<ValueType>& values){
 /// Convertion functions
 //////////////////////////////////////////////////////////////////////////////
 
-template <class ValueType, int nbRowsPerBlock>
-void core_CSR_to_SPC5_rV2c(SPC5Mat<ValueType>* csr){
-    static_assert((nbRowsPerBlock&1) == 0 , "nbRowsPerBlock must multiple of 2");
-
-    assert(csr->format == SPC5_MATRIX_TYPE::FORMAT_CSR);
-
-    std::vector<unsigned char> blocks;
-    blocks.reserve((sizeof(int)+sizeof(short))*csr->numberOfNNZ/ValPerVec<ValueType>::size);
-
-    csr->rowsSizeCpy.reset(new int[csr->numberOfRows+1]);
-    memcpy(csr->rowsSizeCpy.get(), csr->rowsSize.get(), sizeof(int)*(csr->numberOfRows+1));
-
-    std::unique_ptr<ValueType[]> newValues(new ValueType[csr->numberOfNNZ]);
-    int globalIdxValues = 0;
-
-    int previousNbBlocks = 0;
-    for(int idxRow = 0 ; idxRow < csr->numberOfRows ; idxRow += nbRowsPerBlock){
-        int currentNbBlocks = 0;
-        int idxVal[nbRowsPerBlock] = {0};
-        for(int idxSubRow = 0 ; idxSubRow < nbRowsPerBlock ; ++idxSubRow){
-            if(idxRow + idxSubRow < csr->numberOfRows){
-                idxVal[idxSubRow] = csr->rowsSize[idxRow+idxSubRow];
-            }
-        }
-
-        while(true){
-            bool hasWork = false;
-            int idxCol = std::numeric_limits<int>::max();
-            for(int idxSubRow = 0 ; idxSubRow < nbRowsPerBlock ; ++idxSubRow){
-                if(idxRow + idxSubRow < csr->numberOfRows
-                        && idxVal[idxSubRow] < csr->rowsSize[idxRow+idxSubRow+1]){
-                    hasWork = true;
-                    idxCol = std::min(idxCol, csr->valuesColumnIndexes[idxVal[idxSubRow]]);
-                }
-            }
-            if(hasWork == false){
-                break;
-            }
-
-
-            typename SPC5Mat_Mask<ValueType>::type valMask[nbRowsPerBlock/2] = {0u};
-            for(int idxSubRow = 0 ; idxSubRow < nbRowsPerBlock ; ++idxSubRow){
-                if(idxRow + idxSubRow < csr->numberOfRows){
-                    while(idxVal[idxSubRow] < csr->rowsSize[idxRow+idxSubRow+1]
-                          && csr->valuesColumnIndexes[idxVal[idxSubRow]] < idxCol+ValPerVec<ValueType>::size/2){
-                        assert(globalIdxValues < csr->numberOfNNZ);
-                        newValues[globalIdxValues++] = csr->values[idxVal[idxSubRow]];
-                        valMask[idxSubRow/2] |= (1u << (csr->valuesColumnIndexes[idxVal[idxSubRow]]-idxCol
-                                                 + (idxSubRow%2)*ValPerVec<ValueType>::size/2));
-                        idxVal[idxSubRow] += 1;
-                    }
-                }
-            }
-
-            blocks.insert(blocks.end(), (unsigned char*)&idxCol, (unsigned char*)(&idxCol+1));
-            blocks.insert(blocks.end(), (unsigned char*)&valMask[0], (unsigned char*)(&valMask[nbRowsPerBlock/2]));
-            currentNbBlocks += 1;
-        }
-
-        csr->rowsSize[idxRow/nbRowsPerBlock] = previousNbBlocks;
-        previousNbBlocks += currentNbBlocks;
-    }
-
-    csr->numberOfBlocks = previousNbBlocks;
-    csr->values = std::move(newValues);
-    csr->rowsSize[((csr->numberOfRows-1)/nbRowsPerBlock)+1] = previousNbBlocks;
-    csr->blocksColumnIndexesWithMasks = (ToUniquePtr(blocks));
-}
-
 
 template <class ValueType, int nbRowsPerBlock>
 inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
@@ -264,6 +191,8 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
                 idxVal[idxSubRow] = csr->rowsSize[idxRow+idxSubRow];
             }
         }
+
+        int idxCptVal = 0;
 
         while(true){
             bool hasWork = false;
@@ -289,6 +218,7 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
                         newValues[globalIdxValues++] = csr->values[idxVal[idxSubRow]];
                         valMask[idxSubRow] |= (1u << (csr->valuesColumnIndexes[idxVal[idxSubRow]]-idxCol));
                         idxVal[idxSubRow] += 1;
+                        idxCptVal += 1;
                     }
                 }
             }
@@ -300,6 +230,7 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
 
         csr->rowsSize[idxRow/nbRowsPerBlock] = previousNbBlocks;
         previousNbBlocks += currentNbBlocks;
+        assert(csr->rowsSizeCpy[std::min(idxRow+nbRowsPerBlock, csr->numberOfRows)]-csr->rowsSizeCpy[idxRow] == idxCptVal);
     }
 
     csr->numberOfBlocks = previousNbBlocks;
@@ -332,41 +263,6 @@ inline void core_SPC5_rVc_Spmv_scalar(const SPC5Mat<ValueType>& mat, const Value
     }
 }
 
-template <class ValueType, int nbRowsPerBlock>
-inline void core_SPC5_rV2c_Spmv_scalar(const SPC5Mat<ValueType>& mat, const ValueType *x , ValueType *y ){
-    static_assert((nbRowsPerBlock&1) == 0 , "nbRowsPerBlock must multiple of 2");
-
-    int idxVal = 0;
-    for(int idxRow = 0 ; idxRow < mat.numberOfRows ; idxRow += nbRowsPerBlock){
-        const int idxRowBlock = idxRow/nbRowsPerBlock;
-        ValueType sum[nbRowsPerBlock] = {0};
-
-        for(int idxBlock = mat.rowsSize[idxRowBlock]; idxBlock < mat.rowsSize[idxRowBlock+1] ; ++idxBlock){
-            const int idxCol = *(int*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock/2)];
-
-            for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; idxRowBlock += 2){
-                const typename SPC5Mat_Mask<ValueType>::type valMask = *(typename SPC5Mat_Mask<ValueType>::type*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock/2) + sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*(idxRowBlock/2)];
-
-                for(int idxvv = 0 ; idxvv < ValPerVec<ValueType>::size/2 ; ++idxvv){
-                    if((1 << idxvv) & valMask){
-                        sum[idxRowBlock] += x[idxCol+idxvv] * mat.values[idxVal];
-                        idxVal += 1;
-                    }
-                }
-                for(int idxvv = ValPerVec<ValueType>::size/2 ; idxvv < ValPerVec<ValueType>::size ; ++idxvv){
-                    if((1 << idxvv) & valMask){
-                        sum[idxRowBlock+1] += x[idxCol+idxvv-ValPerVec<ValueType>::size/2] * mat.values[idxVal];
-                        idxVal += 1;
-                    }
-                }
-            }
-        }
-        for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; ++idxRowBlock){
-            y[idxRow+idxRowBlock] += sum[idxRowBlock];
-        }
-    }
-}
-
 
 template <class ValueType, int nbRowsPerBlock, class FuncType>
 inline void core_SPC5_rVc_iterate(SPC5Mat<ValueType>& mat, const FuncType&& func){
@@ -380,36 +276,6 @@ inline void core_SPC5_rVc_iterate(SPC5Mat<ValueType>& mat, const FuncType&& func
                 for(int idxvv = 0 ; idxvv < ValPerVec<ValueType>::size ; ++idxvv){
                     if((1 << idxvv) & valMask){
                         func(idxRow+idxRowBlock, idxCol+idxvv, mat.values[idxVal]);
-                        idxVal += 1;
-                    }
-                }
-            }
-        }
-    }
-}
-
-template <class ValueType, int nbRowsPerBlock, class FuncType>
-inline void core_SPC5_rV2c_iterate(SPC5Mat<ValueType>& mat, const FuncType&& func){
-    static_assert((nbRowsPerBlock&1) == 0 , "nbRowsPerBlock must multiple of 2");
-
-    int idxVal = 0;
-    for(int idxRow = 0 ; idxRow < mat.numberOfRows ; idxRow += nbRowsPerBlock){
-        const int idxRowBlock = idxRow/nbRowsPerBlock;
-        for(int idxBlock = mat.rowsSize[idxRowBlock]; idxBlock < mat.rowsSize[idxRowBlock+1] ; ++idxBlock){
-            const int idxCol = *(int*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock/2)];
-
-            for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; idxRowBlock += 2){
-                const typename SPC5Mat_Mask<ValueType>::type valMask = *(typename SPC5Mat_Mask<ValueType>::type*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock/2) + sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*(idxRowBlock/2)];
-
-                for(int idxvv = 0 ; idxvv < ValPerVec<ValueType>::size/2 ; ++idxvv){
-                    if((1 << idxvv) & valMask){
-                        func(idxRow+idxRowBlock, idxCol+idxvv,  mat.values[idxVal]);
-                        idxVal += 1;
-                    }
-                }
-                for(int idxvv = ValPerVec<ValueType>::size/2 ; idxvv < ValPerVec<ValueType>::size ; ++idxvv){
-                    if((1 << idxvv) & valMask){
-                        func(idxRow+idxRowBlock+1, idxCol+idxvv-ValPerVec<ValueType>::size/2,  mat.values[idxVal]);
                         idxVal += 1;
                     }
                 }
@@ -563,88 +429,6 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
     return intervals;
 }
 
-template <class ValueType, int nbRowsPerBlock>
-inline std::vector<ThreadInterval<ValueType>> core_SPC5_rV2c_threadsplit(const SPC5Mat<ValueType>& mat, const int nbThreads){
-    static_assert((nbRowsPerBlock&1) == 0 , "nbRowsPerBlock must multiple of 2");
-
-    std::vector<ThreadInterval<ValueType>> intervals(nbThreads);
-    int idxCurrentThread = 0;
-    const double blocksPerThreads = double(mat.numberOfBlocks)/double(nbThreads);
-    intervals[0].startingRow = 0;
-    intervals[0].valuesOffset = 0;
-
-    int idxVal = 0;
-    for(int idxRow = 0 ; idxRow < mat.numberOfRows ; idxRow += nbRowsPerBlock){
-        if(idxCurrentThread != nbThreads-1 && idxRow // not the last thread
-                && std::abs((double(idxCurrentThread+1)*blocksPerThreads)-mat.rowsSize[idxRow])
-                    < std::abs((double(idxCurrentThread+1)*blocksPerThreads)-mat.rowsSize[idxRow+1])){
-            intervals[idxCurrentThread].numberOfRows = idxRow - intervals[idxCurrentThread].startingRow;
-
-            idxCurrentThread += 1;
-            intervals[idxCurrentThread].startingRow = idxRow;
-            intervals[idxCurrentThread].valuesOffset = idxVal;
-        }
-
-        for(int idxBlock = mat.rowsSize[idxRow]; idxBlock < mat.rowsSize[idxRow+1] ; ++idxBlock){
-            //const int idxCol = *(int*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock/2)];
-
-            for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; idxRowBlock += 2){
-                const typename SPC5Mat_Mask<ValueType>::type valMask = *(typename SPC5Mat_Mask<ValueType>::type*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock/2) + sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*(idxRowBlock/2)];
-
-                for(int idxvv = 0 ; idxvv < ValPerVec<ValueType>::size/2 ; ++idxvv){
-                    if((1 << idxvv) & valMask){
-                        idxVal += 1;
-                    }
-                }
-                for(int idxvv = ValPerVec<ValueType>::size/2 ; idxvv < ValPerVec<ValueType>::size ; ++idxvv){
-                    if((1 << idxvv) & valMask){
-                        idxVal += 1;
-                    }
-                }
-            }
-        }
-    }
-
-
-    intervals[idxCurrentThread].numberOfRows = mat.numberOfRows - intervals[idxCurrentThread].startingRow;
-    idxCurrentThread += 1;
-    while(idxCurrentThread != nbThreads){
-        intervals[idxCurrentThread].startingRow = mat.numberOfRows;
-        intervals[idxCurrentThread].valuesOffset = idxVal;
-        intervals[idxCurrentThread].numberOfRows = 0;
-        idxCurrentThread += 1;
-    }
-
-#pragma omp parallel num_threads(nbThreads)
-    {
-        intervals[omp_get_thread_num()].threadY.reset(new ValueType[intervals[omp_get_thread_num()].numberOfRows + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
-#ifdef SPLIT_NUMA
-        intervals[omp_get_thread_num()].threadRowsSize.reset(new int[intervals[omp_get_thread_num()].numberOfRows + 1]());
-        memcpy(intervals[omp_get_thread_num()].threadRowsSize.get(),
-                mat.rowsSize.get()+intervals[omp_get_thread_num()].startingRow,
-                sizeof(int)*(intervals[omp_get_thread_num()].numberOfRows + 1));
-
-        const int nbBlocks = mat.rowsSize[intervals[omp_get_thread_num()].startingRow + intervals[omp_get_thread_num()].numberOfRows]
-                           - mat.rowsSize[intervals[omp_get_thread_num()].startingRow];
-        const int maskSize = (sizeof(ValueType)==4?2:1);
-
-        intervals[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.reset(new unsigned char[nbBlocks*(4+maskSize*nbRowsPerBlock/2)]());
-        memcpy(intervals[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.get(),
-                mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[intervals[omp_get_thread_num()].startingRow]*(4+maskSize*nbRowsPerBlock/2),
-                sizeof(unsigned char)*(nbBlocks*(4+maskSize*nbRowsPerBlock/2)));
-
-        const int nbValues = (omp_get_thread_num()+1 != nbThreads ? intervals[omp_get_thread_num()+1].valuesOffset : idxVal)
-                - intervals[omp_get_thread_num()].valuesOffset;
-
-        intervals[omp_get_thread_num()].threadValues.reset(new ValueType[nbValues]());
-        memcpy(intervals[omp_get_thread_num()].threadValues.get(),
-                mat.values.get()+intervals[omp_get_thread_num()].valuesOffset,
-                sizeof(ValueType)*nbValues);
-#endif
-    }
-
-    return intervals;
-}
 
 template <class ValueType>
 void SPC5_opti_merge(ValueType dest[], const ValueType src[], const int nbValues);
@@ -899,111 +683,6 @@ inline void SPC5_1rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[]
 
 
 //////////////////////////////////////////////////////////////////////////////
-/// 2rV2c_wt => 2 rows, VEC/2 columns
-//////////////////////////////////////////////////////////////////////////////
-
-template <class ValueType>
-inline void CSR_to_SPC5_2rV2c_wt(SPC5Mat<ValueType>* csr){
-    core_CSR_to_SPC5_rV2c<ValueType, 2>(csr);
-    csr->format = SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT;
-}
-
-template <class ValueType>
-inline SPC5Mat<ValueType> COO_to_SPC5_2rV2c_wt(const int nbRows, const int nbCols,
-                                    Ijv<ValueType> values[], int nbValues){
-    SPC5Mat<ValueType> mat = COO_unsorted_to_CSR(nbRows, nbCols, values, nbValues);
-    CSR_to_SPC5_2rV2c_wt(&mat);
-    return mat;
-}
-
-template <class ValueType>
-inline void SPC5_2rV2c_wt_Spmv_scalar(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[]){
-    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT);
-    core_SPC5_rV2c_Spmv_scalar<ValueType,2>(mat, x, y);
-}
-
-template <class ValueType, class FuncType>
-inline void SPC5_2rV2c_wt_iterate(const SPC5Mat<ValueType>& mat, FuncType&& func){
-    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT);
-    core_SPC5_rV2c_iterate<ValueType,2>(mat, std::forward<FuncType>(func));
-}
-
-template <class ValueType>
-inline int SPC5_2rV2c_wt_block_count(const SPC5Mat<ValueType>& csr){
-    return core_SPC5_block_count<ValueType,2,ValPerVec<ValueType>::size/2>(csr);
-}
-
-
-
-#ifdef _OPENMP
-
-template <class ValueType>
-inline std::vector<ThreadInterval<ValueType>> SPC5_2rV2c_wt_split_omp(const SPC5Mat<ValueType>& mat, const int numThreads){
-    return core_SPC5_rV2c_threadsplit<ValueType,2>(mat, numThreads);
-}
-
-template <class ValueType>
-inline std::vector<ThreadInterval<ValueType>> SPC5_2rV2c_wt_split_omp(const SPC5Mat<ValueType>& mat){
-    return core_SPC5_rV2c_threadsplit<ValueType,2>(mat, omp_get_max_threads());
-}
-
-
-
-#endif
-
-
-//////////////////////////////////////////////////////////////////////////////
-/// 2rV2c => 2 rows, VEC/2 columns
-//////////////////////////////////////////////////////////////////////////////
-
-template <class ValueType>
-inline void CSR_to_SPC5_2rV2c(SPC5Mat<ValueType>* csr){
-    core_CSR_to_SPC5_rV2c<ValueType, 2>(csr);
-    csr->format = SPC5_MATRIX_TYPE::FORMAT_2rV2c;
-}
-
-template <class ValueType>
-inline SPC5Mat<ValueType> COO_to_SPC5_2rV2c(const int nbRows, const int nbCols,
-                                    Ijv<ValueType> values[], int nbValues){
-    SPC5Mat<ValueType> mat = COO_unsorted_to_CSR(nbRows, nbCols, values, nbValues);
-    CSR_to_SPC5_2rV2c(&mat);
-    return mat;
-}
-
-template <class ValueType>
-inline void SPC5_2rV2c_Spmv_scalar(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[]){
-    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_2rV2c);
-    core_SPC5_rV2c_Spmv_scalar<ValueType,2>(mat, x, y);
-}
-
-template <class ValueType, class FuncType>
-inline void SPC5_2rV2c_iterate(const SPC5Mat<ValueType>& mat, FuncType&& func){
-    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_2rV2c);
-    core_SPC5_rV2c_iterate<ValueType,2>(mat, std::forward<FuncType>(func));
-}
-
-template <class ValueType>
-inline int SPC5_2rV2c_block_count(const SPC5Mat<ValueType>& csr){
-    return core_SPC5_block_count<ValueType,2,ValPerVec<ValueType>::size/2>(csr);
-}
-
-
-#ifdef _OPENMP
-
-template <class ValueType>
-inline std::vector<ThreadInterval<ValueType>> SPC5_2rV2c_split_omp(const SPC5Mat<ValueType>& mat, const int numThreads){
-    return core_SPC5_rV2c_threadsplit<ValueType,2>(mat, numThreads);
-}
-
-template <class ValueType>
-inline std::vector<ThreadInterval<ValueType>> SPC5_2rV2c_split_omp(const SPC5Mat<ValueType>& mat){
-    return core_SPC5_rV2c_threadsplit<ValueType,2>(mat, omp_get_max_threads());
-}
-
-
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
 /// 2rVc => 2 rows, VEC/2 columns
 //////////////////////////////////////////////////////////////////////////////
 
@@ -1199,58 +878,6 @@ inline void SPC5_2rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[]
 
 #endif
 
-//////////////////////////////////////////////////////////////////////////////
-/// 4rV2c => 4 rows, VEC/2 columns
-//////////////////////////////////////////////////////////////////////////////
-
-
-template <class ValueType>
-inline void CSR_to_SPC5_4rV2c(SPC5Mat<ValueType>* csr){
-    core_CSR_to_SPC5_rV2c<ValueType, 4>(csr);
-    csr->format = SPC5_MATRIX_TYPE::FORMAT_4rV2c;
-}
-
-template <class ValueType>
-inline SPC5Mat<ValueType> COO_to_SPC5_4rV2c(const int nbRows, const int nbCols,
-                                    Ijv<ValueType> values[], int nbValues){
-    SPC5Mat<ValueType> mat = COO_unsorted_to_CSR(nbRows, nbCols, values, nbValues);
-    CSR_to_SPC5_4rV2c(&mat);
-    return mat;
-}
-
-template <class ValueType>
-inline void SPC5_4rV2c_Spmv_scalar(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[]){
-    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_4rV2c);
-    core_SPC5_rV2c_Spmv_scalar<ValueType,4>(mat, x, y);
-}
-
-template <class ValueType, class FuncType>
-inline void SPC5_4rV2c_iterate(const SPC5Mat<ValueType>& mat, FuncType&& func){
-    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_4rV2c);
-    core_SPC5_rV2c_iterate<ValueType,4>(mat, std::forward<FuncType>(func));
-}
-
-template <class ValueType>
-inline int SPC5_4rV2c_block_count(const SPC5Mat<ValueType>& csr){
-    return core_SPC5_block_count<ValueType,4,ValPerVec<ValueType>::size/2>(csr);
-}
-
-
-#ifdef _OPENMP
-
-template <class ValueType>
-inline std::vector<ThreadInterval<ValueType>> SPC5_4rV2c_split_omp(const SPC5Mat<ValueType>& mat, const int numThreads){
-    return core_SPC5_rV2c_threadsplit<ValueType,4>(mat, numThreads);
-}
-
-template <class ValueType>
-inline std::vector<ThreadInterval<ValueType>> SPC5_4rV2c_split_omp(const SPC5Mat<ValueType>& mat){
-    return core_SPC5_rV2c_threadsplit<ValueType,4>(mat, omp_get_max_threads());
-}
-
-
-
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 /// 4rVc => 4 rows, VEC columns
@@ -1448,57 +1075,6 @@ inline void SPC5_4rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[]
 #endif
 
 
-//////////////////////////////////////////////////////////////////////////////
-/// 8rV2c => 8 rows, VEC/2 columns
-//////////////////////////////////////////////////////////////////////////////
-
-template <class ValueType>
-inline void CSR_to_SPC5_8rV2c(SPC5Mat<ValueType>* csr){
-    core_CSR_to_SPC5_rV2c<ValueType, 8>(csr);
-    csr->format = SPC5_MATRIX_TYPE::FORMAT_8rV2c;
-}
-
-template <class ValueType>
-inline SPC5Mat<ValueType> COO_to_SPC5_8rV2c(const int nbRows, const int nbCols,
-                                    Ijv<ValueType> values[], int nbValues){
-    SPC5Mat<ValueType> mat = COO_unsorted_to_CSR(nbRows, nbCols, values, nbValues);
-    CSR_to_SPC5_8rV2c(&mat);
-    return mat;
-}
-
-template <class ValueType>
-inline void SPC5_8rV2c_Spmv_scalar(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[]){
-    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_8rV2c);
-    core_SPC5_rV2c_Spmv_scalar<ValueType,8>(mat, x, y);
-}
-
-template <class ValueType, class FuncType>
-inline void SPC5_8rV2c_iterate(const SPC5Mat<ValueType>& mat, FuncType&& func){
-    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_8rV2c);
-    core_SPC5_rV2c_iterate<ValueType,8>(mat, std::forward<FuncType>(func));
-}
-
-template <class ValueType>
-inline int SPC5_8rV2c_block_count(const SPC5Mat<ValueType>& csr){
-    return core_SPC5_block_count<ValueType,8,ValPerVec<ValueType>::size/2>(csr);
-}
-
-
-#ifdef _OPENMP
-
-template <class ValueType>
-inline std::vector<ThreadInterval<ValueType>> SPC5_8rV2c_split_omp(const SPC5Mat<ValueType>& mat, const int numThreads){
-    return core_SPC5_rV2c_threadsplit<ValueType,8>(mat, numThreads);
-}
-
-template <class ValueType>
-inline std::vector<ThreadInterval<ValueType>> SPC5_8rV2c_split_omp(const SPC5Mat<ValueType>& mat){
-    return core_SPC5_rV2c_threadsplit<ValueType,8>(mat, omp_get_max_threads());
-}
-
-
-#endif
-
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1513,34 +1089,14 @@ inline void CSR_to_SPC5(SPC5Mat<ValueType>* mat, const SPC5_MATRIX_TYPE matType)
         CSR_to_SPC5_1rVc<ValueType>(mat);
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT :
-        {
-        CSR_to_SPC5_2rV2c_wt<ValueType>(mat);
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c :
-        {
-        CSR_to_SPC5_2rV2c<ValueType>(mat);
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_2rVc :
         {
         CSR_to_SPC5_2rVc<ValueType>(mat);
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_4rV2c :
-        {
-        CSR_to_SPC5_4rV2c<ValueType>(mat);
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_4rVc :
         {
         CSR_to_SPC5_4rVc<ValueType>(mat);
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_8rV2c :
-        {
-        CSR_to_SPC5_8rV2c<ValueType>(mat);
         }
         break;
     default :
@@ -1559,34 +1115,14 @@ inline void SPC5_Spmv_scalar(const SPC5Mat<ValueType>& mat, const ValueType x[],
         SPC5_1rVc_Spmv_scalar<ValueType>(mat, x, y);
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT :
-        {
-        SPC5_2rV2c_wt_Spmv_scalar<ValueType>(mat, x, y);
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c :
-        {
-        SPC5_2rV2c_Spmv_scalar<ValueType>(mat, x, y);
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_2rVc :
         {
         SPC5_2rVc_Spmv_scalar<ValueType>(mat, x, y);
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_4rV2c :
-        {
-        SPC5_4rV2c_Spmv_scalar<ValueType>(mat, x, y);
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_4rVc :
         {
         SPC5_4rVc_Spmv_scalar<ValueType>(mat, x, y);
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_8rV2c :
-        {
-        SPC5_8rV2c_Spmv_scalar<ValueType>(mat, x, y);
         }
         break;
     case SPC5_MATRIX_TYPE::FORMAT_CSR :
@@ -1609,34 +1145,14 @@ inline void SPC5_iterate(const SPC5Mat<ValueType>& mat, FuncType&& func){
         SPC5_1rVc_iterate<ValueType>(mat, std::forward<FuncType>(func));
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT :
-        {
-        SPC5_2rV2c_wt_iterate<ValueType>(mat, std::forward<FuncType>(func));
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c :
-        {
-        SPC5_2rV2c_iterate<ValueType>(mat, std::forward<FuncType>(func));
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_2rVc :
         {
         SPC5_2rVc_iterate<ValueType>(mat, std::forward<FuncType>(func));
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_4rV2c :
-        {
-        SPC5_4rV2c_iterate<ValueType>(mat, std::forward<FuncType>(func));
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_4rVc :
         {
         SPC5_4rVc_iterate<ValueType>(mat, std::forward<FuncType>(func));
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_8rV2c :
-        {
-        SPC5_8rV2c_iterate<ValueType>(mat, std::forward<FuncType>(func));
         }
         break;
     case SPC5_MATRIX_TYPE::FORMAT_CSR :
@@ -1684,34 +1200,14 @@ inline void SPC5_block_count(const SPC5Mat<ValueType>& csr, const SPC5_MATRIX_TY
         SPC5_1rVc_block_count<ValueType>(csr);
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT :
-        {
-        SPC5_2rV2c_wt_block_count<ValueType>(csr);
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c :
-        {
-        SPC5_2rV2c_block_count<ValueType>(csr);
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_2rVc :
         {
         SPC5_2rVc_block_count<ValueType>(csr);
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_4rV2c :
-        {
-        SPC5_4rV2c_block_count<ValueType>(csr);
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_4rVc :
         {
         SPC5_4rVc_block_count<ValueType>(csr);
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_8rV2c :
-        {
-        SPC5_8rV2c_block_count<ValueType>(csr);
         }
         break;
     default :
@@ -1754,46 +1250,6 @@ std::pair<SPC5_MATRIX_TYPE, double> SPC5_find_best(const SPC5Mat<ValueType>& csr
         }
     {
         if(in_double){
-            const double coef[4] = { 8.266286e-03, -1.626724e-01 , 1.293833e+00 , -5.437822e-01  };
-            const int nbBlocks = SPC5_2rV2c_block_count<ValueType>(csr);
-            const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-            if(thisSpeed > estimatedSpeed){
-                estimatedSpeed = thisSpeed;
-                bestType = SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT;
-            }
-        }
-        else{
-            const double coef[4] = { -9.195940e-04, 4.442050e-03 , 5.273045e-01 , 1.101610e+00  };
-            const int nbBlocks = SPC5_2rV2c_block_count<ValueType>(csr);
-            const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-            if(thisSpeed > estimatedSpeed){
-                estimatedSpeed = thisSpeed;
-                bestType = SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT;
-            }
-        }
-    }
-    {
-        if(in_double){
-            const double coef[4] = { 7.787745e-03, -1.570643e-01 , 1.231532e+00 , -1.800484e-01  };
-            const int nbBlocks = SPC5_2rV2c_block_count<ValueType>(csr);
-            const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-            if(thisSpeed > estimatedSpeed){
-                estimatedSpeed = thisSpeed;
-                bestType = SPC5_MATRIX_TYPE::FORMAT_2rV2c;
-            }
-        }
-        else{
-            const double coef[4] = { -9.195940e-04, 4.442050e-03 , 5.273045e-01 , 1.101610e+00  };
-            const int nbBlocks = SPC5_2rV2c_block_count<ValueType>(csr);
-            const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-            if(thisSpeed > estimatedSpeed){
-                estimatedSpeed = thisSpeed;
-                bestType = SPC5_MATRIX_TYPE::FORMAT_2rV2c;
-            }
-        }
-    }
-    {
-        if(in_double){
             const double coef[4] = { 9.822706e-04, -4.500002e-02 , 6.714119e-01 , 2.413985e-01  };
             const int nbBlocks = SPC5_2rVc_block_count<ValueType>(csr);
             const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
@@ -1809,26 +1265,6 @@ std::pair<SPC5_MATRIX_TYPE, double> SPC5_find_best(const SPC5Mat<ValueType>& csr
             if(thisSpeed > estimatedSpeed){
                 estimatedSpeed = thisSpeed;
                 bestType = SPC5_MATRIX_TYPE::FORMAT_2rVc;
-            }
-        }
-    }
-    {
-        if(in_double){
-            const double coef[4] = { 5.138277e-04, -3.127338e-02 , 5.740454e-01 , 2.086101e-01 };
-            const int nbBlocks = SPC5_4rV2c_block_count<ValueType>(csr);
-            const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-            if(thisSpeed > estimatedSpeed){
-                estimatedSpeed = thisSpeed;
-                bestType = SPC5_MATRIX_TYPE::FORMAT_4rV2c;
-            }
-        }
-        else{
-            const double coef[4] = {  -2.181318e-05, -5.198402e-03 , 3.855267e-01 , 8.700233e-01 };
-            const int nbBlocks = SPC5_4rV2c_block_count<ValueType>(csr);
-            const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-            if(thisSpeed > estimatedSpeed){
-                estimatedSpeed = thisSpeed;
-                bestType = SPC5_MATRIX_TYPE::FORMAT_4rV2c;
             }
         }
     }
@@ -1852,26 +1288,6 @@ std::pair<SPC5_MATRIX_TYPE, double> SPC5_find_best(const SPC5Mat<ValueType>& csr
             }
         }
     }
-    {
-        if(in_double){
-            const double coef[4] = { 3.403517e-05, -7.292415e-03 , 2.941192e-01 , 2.756599e-01 };
-            const int nbBlocks = SPC5_8rV2c_block_count<ValueType>(csr);
-            const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-            if(thisSpeed > estimatedSpeed){
-                estimatedSpeed = thisSpeed;
-                bestType = SPC5_MATRIX_TYPE::FORMAT_8rV2c;
-            }
-        }
-        else{
-            const double coef[4] = { -2.097467e-05, -4.264717e-04 , 2.086814e-01 , 6.871666e-01 };
-            const int nbBlocks = SPC5_8rV2c_block_count<ValueType>(csr);
-            const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-            if(thisSpeed > estimatedSpeed){
-                estimatedSpeed = thisSpeed;
-                bestType = SPC5_MATRIX_TYPE::FORMAT_8rV2c;
-            }
-        }
-    }
 
     return std::pair<SPC5_MATRIX_TYPE, double>(bestType, estimatedSpeed);
 }
@@ -1886,30 +1302,13 @@ inline const char* SPC5_type_to_string(const SPC5_MATRIX_TYPE matType){
     {
         return "1rVc_WT";
     }
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT :
-    {
-        return "2rV2c_WT";
-    }
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c :
-    {
-        return "2rV2c";
-    }
     case SPC5_MATRIX_TYPE::FORMAT_2rVc :
     {
         return "2rVc";
     }
-    case SPC5_MATRIX_TYPE::FORMAT_4rV2c :
-    {
-        return "4rV2c";
-    }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_4rVc :
     {
         return "4rVc";
-    }
-    case SPC5_MATRIX_TYPE::FORMAT_8rV2c :
-    {
-        return "8rV2c";
     }
     default :
         {
@@ -1949,24 +1348,6 @@ inline std::pair<SPC5_MATRIX_TYPE, double> SPC5_find_best_omp<double>(const SPC5
         }
     }
     {
-        const double coef[4] = { 2.0839,0.0600,2.3371,0.0778};
-        const int nbBlocks = SPC5_2rV2c_block_count<ValueType>(csr);
-        const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-        if(thisSpeed > estimatedSpeed){
-            estimatedSpeed = thisSpeed;
-            bestType = SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT;
-        }
-    }
-    {
-        const double coef[4] = {  3.5188,0.1213,2.1070,0.0738};
-        const int nbBlocks = SPC5_2rV2c_block_count<ValueType>(csr);
-        const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-        if(thisSpeed > estimatedSpeed){
-            estimatedSpeed = thisSpeed;
-            bestType = SPC5_MATRIX_TYPE::FORMAT_2rV2c;
-        }
-    }
-    {
         const double coef[4] = { 5.2172,0.1435,0.8331,0.0556};
         const int nbBlocks = SPC5_2rVc_block_count<ValueType>(csr);
         const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
@@ -1976,30 +1357,12 @@ inline std::pair<SPC5_MATRIX_TYPE, double> SPC5_find_best_omp<double>(const SPC5
         }
     }
     {
-        const double coef[4] = { 4.7097,0.1107,1.1185,0.0439 };
-        const int nbBlocks = SPC5_4rV2c_block_count<ValueType>(csr);
-        const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-        if(thisSpeed > estimatedSpeed){
-            estimatedSpeed = thisSpeed;
-            bestType = SPC5_MATRIX_TYPE::FORMAT_4rV2c;
-        }
-    }
-    {
         const double coef[4] = { 5.3212,0.1921,0.5201,0.0263};
         const int nbBlocks = SPC5_4rVc_block_count<ValueType>(csr);
         const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
         if(thisSpeed > estimatedSpeed){
             estimatedSpeed = thisSpeed;
             bestType = SPC5_MATRIX_TYPE::FORMAT_4rVc;
-        }
-    }
-    {
-        const double coef[4] = {4.7149,0.1311,0.6598,0.0223};
-        const int nbBlocks = SPC5_8rV2c_block_count<ValueType>(csr);
-        const double thisSpeed = polyval(coef, double(csr.numberOfNNZ)/double(nbBlocks));
-        if(thisSpeed > estimatedSpeed){
-            estimatedSpeed = thisSpeed;
-            bestType = SPC5_MATRIX_TYPE::FORMAT_8rV2c;
         }
     }
 
@@ -2015,34 +1378,14 @@ inline std::vector<ThreadInterval<ValueType>> SPC5_split_omp(const SPC5Mat<Value
         return SPC5_1rVc_split_omp<ValueType>(mat);
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c_WT :
-        {
-        return SPC5_2rV2c_wt_split_omp<ValueType>(mat);
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_2rVc :
         {
         return SPC5_2rVc_split_omp<ValueType>(mat);
         }
         break;
-    case SPC5_MATRIX_TYPE::FORMAT_2rV2c :
-        {
-        return SPC5_2rV2c_split_omp<ValueType>(mat);
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_4rV2c :
-        {
-        return SPC5_4rV2c_split_omp<ValueType>(mat);
-        }
-        break;
     case SPC5_MATRIX_TYPE::FORMAT_4rVc :
         {
         return SPC5_4rVc_split_omp<ValueType>(mat);
-        }
-        break;
-    case SPC5_MATRIX_TYPE::FORMAT_8rV2c :
-        {
-        return SPC5_8rV2c_split_omp<ValueType>(mat);
         }
         break;
     default :

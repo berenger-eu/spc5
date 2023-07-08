@@ -33,32 +33,16 @@ void* spc5_init_t(const SPC5_MATRIX_TYPE_C inFormat, const int rows, const int c
             if(strcmp(strFormat,"1WT") == 0){
                 container->format = SPC5_FORMAT_1rVc_WT;
             }
-            else if(strcmp(strFormat,"22WT") == 0){
-                container->format = SPC5_FORMAT_2rV2c_WT;
-            }
-            else if(strcmp(strFormat,"22") == 0){
-                container->format = SPC5_FORMAT_2rV2c;
-            }
             else if(strcmp(strFormat,"2") == 0){
                 container->format = SPC5_FORMAT_2rVc;
-            }
-            else if(strcmp(strFormat,"42") == 0){
-                container->format = SPC5_FORMAT_4rV2c;
             }
             else if(strcmp(strFormat,"4") == 0){
                 container->format = SPC5_FORMAT_4rVc;
             }
-            else if(strcmp(strFormat,"8") == 0){
-                container->format = SPC5_FORMAT_8rV2c;
-            }
             else{
                 printf("[SPC5] Invalid SPC5_FORMAT = %s\n", strFormat);
                 printf("[SPC5] Should be: 1WT, 22WT, 22, 2, 42, 4, 8\n");
-                container->format = SPC5_FORMAT_2rV2c_WT;
             }
-        }
-        else{
-            container->format = SPC5_FORMAT_2rV2c_WT;
         }
     }
     else{
@@ -68,23 +52,11 @@ void* spc5_init_t(const SPC5_MATRIX_TYPE_C inFormat, const int rows, const int c
     case SPC5_FORMAT_1rVc_WT:
         container->csr = (COO_to_SPC5_1rVc<ValueType>(rows, cols, values_ijv.get(), nnz));
         break;
-    case SPC5_FORMAT_2rV2c_WT:
-        container->csr = (COO_to_SPC5_2rV2c_wt<ValueType>(rows, cols, values_ijv.get(), nnz));
-        break;
-    case SPC5_FORMAT_2rV2c:
-        container->csr = (COO_to_SPC5_2rV2c<ValueType>(rows, cols, values_ijv.get(), nnz));
-        break;
     case SPC5_FORMAT_2rVc:
         container->csr = (COO_to_SPC5_2rVc<ValueType>(rows, cols, values_ijv.get(), nnz));
         break;
-    case SPC5_FORMAT_4rV2c:
-        container->csr = (COO_to_SPC5_4rV2c<ValueType>(rows, cols, values_ijv.get(), nnz));
-        break;
     case SPC5_FORMAT_4rVc:
         container->csr = (COO_to_SPC5_4rVc<ValueType>(rows, cols, values_ijv.get(), nnz));
-        break;
-    case SPC5_FORMAT_8rV2c:
-        container->csr = (COO_to_SPC5_8rV2c<ValueType>(rows, cols, values_ijv.get(), nnz));
         break;
     default:
         printf("[SPC5] Invalid SPC5 format %d (line %d file %s)\n", container->format, __LINE__, __FILE__);

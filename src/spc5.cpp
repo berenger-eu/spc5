@@ -178,8 +178,8 @@ void core_SPC5_1rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
         y[idxRow+3] += svaddv(true_vec, sum_vec3);
     }
 
-    core_SPC5_1rVc_Spmv_double(nbRows-nbRows4, &rowSizes[nbRows4],
-                               &headers[rowSizes[nbRows4]*5],
+    core_SPC5_1rVc_Spmv_double(nbRows-nbRows4, &rowSizes[nbRows4/4],
+                               &headers[rowSizes[nbRows4/4]*5],
                                &values[rowptr[nbRows4]],
                                x, &y[nbRows4]);
 }
@@ -364,8 +364,8 @@ void core_SPC5_1rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         y[idxRow+3] += svaddv(true_vec, sum_vec3);
     }
 
-    core_SPC5_1rVc_Spmv_float(nbRows-nbRows4, &rowSizes[nbRows4],
-                               &headers[rowSizes[nbRows4]*6],
+    core_SPC5_1rVc_Spmv_float(nbRows-nbRows4, &rowSizes[nbRows4/4],
+                               &headers[rowSizes[nbRows4/4]*6],
                                &values[rowptr[nbRows4]],
                                x, &y[nbRows4]);
 }
@@ -436,9 +436,9 @@ void core_SPC5_2rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
                                                1<<4, 1<<5, 1<<6, 1<<7};
     const svuint64_t maskFilter = svld1_u64(true_vec, maskFilterValues);
 
-    const long int nbRows4 = (nbRows - (nbRows%8));
+    const long int nbRows8 = (nbRows - (nbRows%8));
 
-    for (int idxRow = 0; idxRow < nbRows4; idxRow += 8) {
+    for (int idxRow = 0; idxRow < nbRows8; idxRow += 8) {
         const int idxRowBlock = idxRow/8;
 
         svfloat64_t sum_vec0 = zeros;
@@ -604,10 +604,10 @@ void core_SPC5_2rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
         y[idxRow+7] += svaddv(true_vec, sum_vec_13);
     }
 
-    core_SPC5_2rVc_Spmv_double(nbRows-nbRows4, &rowSizes[nbRows4],
-                               &headers[rowSizes[nbRows4]*6],
-                               &values[rowptr[nbRows4]],
-                               x, &y[nbRows4]);
+    core_SPC5_2rVc_Spmv_double(nbRows-nbRows8, &rowSizes[nbRows8/8],
+                               &headers[rowSizes[nbRows8/8]*6],
+                               &values[rowptr[nbRows8]],
+                               x, &y[nbRows8]);
 }
 
 
@@ -669,6 +669,62 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
                                const float* values,
                                const float* x, float* y,
                                   const int* rowptr){
+    {
+        const float* origValues = values;
+        //const svbool_t false_vec = svpfalse();
+        const svbool_t true_vec = svptrue_b32();
+        const svfloat32_t zeros = svdup_n_f32(0);
+        const unsigned int maskFilterValues[16] = {1<<0, 1<<1, 1<<2, 1<<3,
+                                                   1<<4, 1<<5, 1<<6, 1<<7,
+                                                   1<<8, 1<<9, 1<<10, 1<<11,
+                                                   1<<12, 1<<13, 1<<14, 1<<15};
+        const svuint32_t maskFilter = svld1_u32(true_vec, maskFilterValues);
+
+        for (int idxRow = 0; idxRow < nbRows; idxRow += 2) {
+            const int idxRowBlock = idxRow/2;
+            assert(&origValues[rowptr[idxRow]] == values);
+
+            svfloat32_t sum_vec = zeros;
+            svfloat32_t sum_vec_1 = zeros;
+
+            for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock+1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned short mask = *(const unsigned short*)&headers[4];
+                const unsigned short mask_1 = *(const unsigned short*)&headers[6];
+
+                const svuint32_t maskInVec = svdup_n_u32(mask);
+                const svbool_t mask_vec = svcmpne_n_u32(true_vec, svand_u32_z(true_vec, maskFilter, maskInVec), 0);
+
+                const svuint32_t maskInVec_1 = svdup_n_u32(mask_1);
+                const svbool_t mask_vec_1 = svcmpne_n_u32(true_vec, svand_u32_z(true_vec, maskFilter, maskInVec_1), 0);
+
+                const uint32_t increment = svcntp_b32(mask_vec, mask_vec);
+                const uint32_t increment_1 = svcntp_b32(mask_vec_1, mask_vec_1);
+
+                const svfloat32_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
+                const svfloat32_t xvals_1 = svcompact(mask_vec_1, svld1(mask_vec_1, &x[idxCol]));
+
+                const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values);
+                values += increment;
+
+                const svfloat32_t block_1 = svld1(svwhilelt_b32_s32(0, increment_1), values);
+                values += increment_1;
+
+                sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
+                sum_vec_1 = svmla_m(true_vec, sum_vec_1, block_1, xvals_1);
+
+                headers += 8;
+            }
+
+            y[idxRow] += svaddv(true_vec, sum_vec);
+            y[idxRow+1] += svaddv(true_vec, sum_vec_1);
+        }
+        return;
+    }
+
+    //////////////////////////////////////////////////////////
+
+
     //const svbool_t false_vec = svpfalse();
     const svbool_t true_vec = svptrue_b32();
     const svfloat32_t zeros = svdup_n_f32(0);
@@ -678,9 +734,9 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
                                                1<<12, 1<<13, 1<<14, 1<<15};
     const svuint32_t maskFilter = svld1_u32(true_vec, maskFilterValues);
 
-    const long int nbRows4 = (nbRows - (nbRows%8));
+    const long int nbRows8 = (nbRows - (nbRows%8));
 
-    for (int idxRow = 0; idxRow < nbRows4; idxRow += 8) {
+    for (int idxRow = 0; idxRow < nbRows8; idxRow += 8) {
         const int idxRowBlock = idxRow/8;
 
         svfloat32_t sum_vec0 = zeros;
@@ -707,6 +763,8 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         const float* values1 = &values[rowptr[idxRow+2]];
         const float* values2 = &values[rowptr[idxRow+4]];
         const float* values3 = &values[rowptr[idxRow+6]];
+
+        int tmp = 0;// TODO
 
         while(workTodo){
             workTodo = false;
@@ -735,6 +793,8 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 const svfloat32_t block_1 = svld1(svwhilelt_b32_s32(0, increment_1), values0);
                 values0 += increment_1;
+
+                tmp += increment + increment_1;// TODO
 
                 sum_vec0 = svmla_m(true_vec, sum_vec0, block, xvals);
                 sum_vec_10 = svmla_m(true_vec, sum_vec_10, block_1, xvals_1);
@@ -834,11 +894,12 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
                 headers3 += 8;
             }
         }
-        assert(idxBlock0 == rowSizes[idxRowBlock+1]);
+        assert(idxBlock0 == rowSizes[idxRowBlock+1]);// TODO
         assert(idxBlock1 == rowSizes[idxRowBlock+2]);
         assert(idxBlock2 == rowSizes[idxRowBlock+3]);
 
-        assert(values0 == &values[rowptr[idxRow+2]]);
+        assert(tmp == (rowptr[idxRow+2] - rowptr[idxRow]));
+        assert(values0 == &values[rowptr[idxRow+2]]);// TODO
         assert(values1 == &values[rowptr[idxRow+4]]);
         assert(values2 == &values[rowptr[idxRow+6]]);
 
@@ -852,10 +913,10 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         y[idxRow+7] += svaddv(true_vec, sum_vec_13);
     }
 
-    core_SPC5_2rVc_Spmv_float(nbRows-nbRows4, &rowSizes[nbRows4],
-                              &headers[rowSizes[nbRows4]*8],
-                              &values[rowptr[nbRows4]],
-                              x, &y[nbRows4]);
+    core_SPC5_2rVc_Spmv_float(nbRows-nbRows8, &rowSizes[nbRows8/8],
+                              &headers[rowSizes[nbRows8/8]*8],
+                              &values[rowptr[nbRows8]],
+                              x, &y[nbRows8]);
 }
 
 
@@ -949,9 +1010,9 @@ void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
                                                1<<4, 1<<5, 1<<6, 1<<7};
     const svuint64_t maskFilter = svld1_u64(true_vec, maskFilterValues);
 
-    const long int nbRows4 = (nbRows - (nbRows%16));
+    const long int nbRows16 = (nbRows - (nbRows%16));
 
-    for (int idxRow = 0; idxRow < nbRows4; idxRow += 16) {
+    for (int idxRow = 0; idxRow < nbRows16; idxRow += 16) {
         const int idxRowBlock = idxRow/16;
 
         svfloat64_t sum_vec0 = zeros;
@@ -1213,10 +1274,10 @@ void core_SPC5_4rVc_Spmv_double_v2(const long int nbRows, const int* rowSizes,
         y[idxRow+14] += svaddv(true_vec, sum_vec_23);
         y[idxRow+15] += svaddv(true_vec, sum_vec_33);
     }
-    core_SPC5_4rVc_Spmv_double(nbRows-nbRows4, &rowSizes[nbRows4],
-                               &headers[rowSizes[nbRows4]*8],
-                               &values[rowptr[nbRows4]],
-                               x, &y[nbRows4]);
+    core_SPC5_4rVc_Spmv_double(nbRows-nbRows16, &rowSizes[nbRows16/16],
+                               &headers[rowSizes[nbRows16/16]*8],
+                               &values[rowptr[nbRows16]],
+                               x, &y[nbRows16]);
 }
 
 
@@ -1311,9 +1372,9 @@ void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
                                                1<<12, 1<<13, 1<<14, 1<<15};
     const svuint32_t maskFilter = svld1_u32(true_vec, maskFilterValues);
 
-    const long int nbRows4 = (nbRows - (nbRows%16));
+    const long int nbRows16 = (nbRows - (nbRows%16));
 
-    for (int idxRow = 0; idxRow < nbRows4; idxRow += 16) {
+    for (int idxRow = 0; idxRow < nbRows16; idxRow += 16) {
         const int idxRowBlock = idxRow/16;
 
         svfloat32_t sum_vec0 = zeros;
@@ -1576,8 +1637,8 @@ void core_SPC5_4rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         y[idxRow+15] += svaddv(true_vec, sum_vec_33);
     }
 
-    core_SPC5_4rVc_Spmv_float(nbRows-nbRows4, &rowSizes[nbRows4],
-                               &headers[rowSizes[nbRows4]*12],
-                               &values[rowptr[nbRows4]],
-                               x, &y[nbRows4]);
+    core_SPC5_4rVc_Spmv_float(nbRows-nbRows16, &rowSizes[nbRows16/16],
+                               &headers[rowSizes[nbRows16/16]*12],
+                               &values[rowptr[nbRows16]],
+                               x, &y[nbRows16]);
 }

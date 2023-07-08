@@ -7,12 +7,8 @@ extern "C" {
 
 enum SPC5_MATRIX_TYPE_C{
     SPC5_FORMAT_1rVc_WT,
-    SPC5_FORMAT_2rV2c_WT,
-    SPC5_FORMAT_2rV2c,
     SPC5_FORMAT_2rVc,
-    SPC5_FORMAT_4rV2c,
     SPC5_FORMAT_4rVc,
-    SPC5_FORMAT_8rV2c,
     SPC5_FORMAT_DEFAULT
 };
 
