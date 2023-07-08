@@ -764,8 +764,6 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
         const float* values2 = &values[rowptr[idxRow+4]];
         const float* values3 = &values[rowptr[idxRow+6]];
 
-        int tmp = 0;// TODO
-
         while(workTodo){
             workTodo = false;
 
@@ -793,8 +791,6 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
 
                 const svfloat32_t block_1 = svld1(svwhilelt_b32_s32(0, increment_1), values0);
                 values0 += increment_1;
-
-                tmp += increment + increment_1;// TODO
 
                 sum_vec0 = svmla_m(true_vec, sum_vec0, block, xvals);
                 sum_vec_10 = svmla_m(true_vec, sum_vec_10, block_1, xvals_1);
@@ -894,14 +890,6 @@ void core_SPC5_2rVc_Spmv_float_v2(const long int nbRows, const int* rowSizes,
                 headers3 += 8;
             }
         }
-        assert(idxBlock0 == rowSizes[idxRowBlock+1]);// TODO
-        assert(idxBlock1 == rowSizes[idxRowBlock+2]);
-        assert(idxBlock2 == rowSizes[idxRowBlock+3]);
-
-        assert(tmp == (rowptr[idxRow+2] - rowptr[idxRow]));
-        assert(values0 == &values[rowptr[idxRow+2]]);// TODO
-        assert(values1 == &values[rowptr[idxRow+4]]);
-        assert(values2 == &values[rowptr[idxRow+6]]);
 
         y[idxRow] += svaddv(true_vec, sum_vec0);
         y[idxRow+1] += svaddv(true_vec, sum_vec_10);
