@@ -1,0 +1,47 @@
+-> number of rows = 2048
+-> number of columns = 2048
+-> number of values = 4194304
+-> number of values per row = 2048
+-> number loops to smooth the timing if > 1 =  16
+-> number of flops to do per spmv = 134217728
+Start usual CSR: 2048
+Conversion in : 0.0520511s
+-> Done in 0.340882s
+-> GFlops 0.393737s
+-> Esimated performance are 3.62819 for 2rV2c_WT
+Start usual 1rVc: 
+Conversion in : 0.425969s
+-> Done in 0.0469493s
+-> Number of blocks 524288( avg. 8 values per block)
+-> GFlops 2.85878s
+-> Max Difference in Accuracy 0
+Start usual 1rVc_v2: 
+Conversion in : 0.421204s
+-> Done in 0.0553321s
+-> Number of blocks 524288( avg. 8 values per block)
+-> GFlops 2.42567s
+-> Max Difference in Accuracy 0
+Start usual 2rVc: 
+Conversion in : 0.410529s
+-> Done in 0.0393328s
+-> Number of blocks 262144( avg. 16 values per block)
+-> GFlops 3.41236s
+-> Max Difference in Accuracy 0
+Start usual 2rVc_v2: 
+Conversion in : 0.410264s
+-> Done in 0.0554475s
+-> Number of blocks 262144( avg. 16 values per block)
+-> GFlops 2.42063s
+-> Max Difference in Accuracy 0
+Start usual 4rVc: 
+Conversion in : 0.403752s
+-> Done in 0.0432044s
+-> Number of blocks 131072( avg. 32 values per block)
+-> GFlops 3.10658s
+-> Max Difference in Accuracy 0
+Start usual 4rVc_v2: 
+Conversion in : 0.403366s
+-> Done in 0.0479565s
+-> Number of blocks 131072( avg. 32 values per block)
+-> GFlops 2.79874s
+-> Max Difference in Accuracy 0
