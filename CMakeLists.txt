@@ -17,18 +17,6 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 SET(SPC5_EXTRA_FLAG "-march=native -Wextra -Wnon-virtual-dtor -Wshadow -Wpointer-arith -Wcast-qual -Wconversion  -Wall -Wno-sign-conversion -pedantic -Woverloaded-virtual -Wpointer-arith -Wcast-qual -Wconversion -Wno-error" CACHE STRING "Additional flags"  )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SPC5_EXTRA_FLAG}")
 
-#################################################
-
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|AARCH64|arm64|ARM64")
-    message(STATUS "ARMv8 architecture detected")
-    SET(SPC5_ARM_SVE_FLAG "-march=armv8.2-a+sve" CACHE STRING "Additional ARM SVE flags"  )    
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SPC5_ARM_SVE_FLAG}")
-else()
-    message(STATUS "Non-ARMv8 architecture")
-    # Add configuration or build options for other architectures here
-    add_definitions(-DUSE_FARM)
-    add_definitions(-DFARM_NB_BITS_IN_VEC=512)
-endif()
 
 #################################################
 
@@ -75,26 +63,14 @@ message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
 
 file(GLOB_RECURSE hpp_for_lib ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp)
 
-#################################################
-
-if(DEFINED ENV{ARMPLROOT})
-    set(ARMPL_FOUND TRUE)
-else()
-    set(ARMPL_FOUND FALSE)
-endif()
-
-option(USE_ARMPL "Compile examples with ARMPL" ${ARMPL_FOUND})
-message(STATUS "USE_ARMPL  = ${USE_ARMPL}")
-if(DEFINED ENV{ARMPLROOT} AND USE_ARMPL)
-    include_directories("$ENV{ARMPLROOT}/include")
-    add_definitions("-DUSE_ARMPL")
-endif()
 
 #################################################
 
 option(USE_AVX512 "USE AVX512" FALSE)
 
 if( USE_AVX512 )
+    add_definitions("-DUSE_AVX512")
+    
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")    
         set(AVX512KNL_FLAGS "-xCOMMON-AVX512 -xMIC-AVX512")
         set(AVX512SKL_FLAGS "-xCOMMON-AVX512 -xCORE-AVX512")
@@ -118,6 +94,7 @@ if( USE_AVX512 )
     else()
         message(ERROR "unknown CPU type ${CPU}")
     endif()
+    #################################################
 
     if(DEFINED ENV{MKLROOT})
         set(MKL_FOUND TRUE)
@@ -130,6 +107,34 @@ if( USE_AVX512 )
         include_directories("$ENV{MKLROOT}/include")
         add_definitions("-DUSE_MKL")
     endif()
+else()
+    #################################################
+
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|AARCH64|arm64|ARM64")
+        message(STATUS "ARMv8 architecture detected")
+        SET(SPC5_ARM_SVE_FLAG "-march=armv8.2-a+sve" CACHE STRING "Additional ARM SVE flags"  )    
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SPC5_ARM_SVE_FLAG}")
+    else()
+        message(STATUS "Non-ARMv8 architecture")
+        # Add configuration or build options for other architectures here
+        add_definitions(-DUSE_FARM)
+        add_definitions(-DFARM_NB_BITS_IN_VEC=512)
+    endif()
+
+    #################################################
+
+    if(DEFINED ENV{ARMPLROOT})
+        set(ARMPL_FOUND TRUE)
+    else()
+        set(ARMPL_FOUND FALSE)
+    endif()
+
+    option(USE_ARMPL "Compile examples with ARMPL" ${ARMPL_FOUND})
+    message(STATUS "USE_ARMPL  = ${USE_ARMPL}")
+    if(DEFINED ENV{ARMPLROOT} AND USE_ARMPL)
+        include_directories("$ENV{ARMPLROOT}/include")
+        add_definitions("-DUSE_ARMPL")
+    endif()    
 endif()    
 
 #################################################

@@ -205,7 +205,7 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
                           && csr->valuesColumnIndexes[idxVal[idxSubRow]] < idxCol+ValPerVec<ValueType>::size){
                         assert(globalIdxValues < csr->numberOfNNZ);
                         newValues[globalIdxValues++] = csr->values[idxVal[idxSubRow]];
-                        valMask[idxSubRow] |= (1u << (csr->valuesColumnIndexes[idxVal[idxSubRow]]-idxCol));
+                        valMask[idxSubRow] |= typename SPC5Mat_Mask<ValueType>::type(1u << (csr->valuesColumnIndexes[idxVal[idxSubRow]]-idxCol));
                         idxVal[idxSubRow] += 1;
                         idxCptVal += 1;
                     }
@@ -259,11 +259,11 @@ inline void core_SPC5_rVc_iterate(SPC5Mat<ValueType>& mat, const FuncType&& func
         const int idxRowBlock = idxRow/nbRowsPerBlock;
         for(int idxBlock = mat.rowsSize[idxRowBlock]; idxBlock < mat.rowsSize[idxRowBlock+1] ; ++idxBlock){
             const int idxCol = *(int*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock)];
-            for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; idxRowBlock += 1){
+            for(int idxRowBlockp = 0 ; idxRowBlockp < nbRowsPerBlock ; idxRowBlockp += 1){
                 const typename SPC5Mat_Mask<ValueType>::type valMask = *(typename SPC5Mat_Mask<ValueType>::type*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock) + sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*(idxRowBlock)];
                 for(int idxvv = 0 ; idxvv < ValPerVec<ValueType>::size ; ++idxvv){
                     if((1 << idxvv) & valMask){
-                        func(idxRow+idxRowBlock, idxCol+idxvv, mat.values[idxVal]);
+                        func(idxRow+idxRowBlockp, idxCol+idxvv, mat.values[idxVal]);
                         idxVal += 1;
                     }
                 }
@@ -460,7 +460,7 @@ inline void CSR_to_SPC5_1rVc(SPC5Mat<ValueType>* csr){
             typename SPC5Mat_Mask<ValueType>::type valMask = 1u;
             idxVal += 1;
             while(idxVal < csr->rowsSize[idxRow+1] && csr->valuesColumnIndexes[idxVal] < idxCol+ValPerVec<ValueType>::size){
-                valMask |= (static_cast<typename SPC5Mat_Mask<ValueType>::type>(1u) << (csr->valuesColumnIndexes[idxVal]-idxCol));
+                valMask |= typename SPC5Mat_Mask<ValueType>::type(static_cast<typename SPC5Mat_Mask<ValueType>::type>(1u) << (csr->valuesColumnIndexes[idxVal]-idxCol));
                 idxVal += 1;
             }
 
@@ -1518,13 +1518,14 @@ inline void SPC5_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[], Va
 #endif
 
 ////////////////////////////////////////////////////////////////////////
+#ifndef USE_AVX512
+
 #ifdef __ARM_FEATURE_SVE
 #include <arm_sve.h>
 #else
 #include "farm_sve.h"
 #endif /* __ARM_FEATURE_SVE */
 
-#include "spc5.hpp"
 
 extern "C" void SPC5_opti_merge_double(double dest[], const double src[], const int nbValues){
     for(int idx = 0 ; idx < nbValues ; idx += svcntd()){
@@ -2148,10 +2149,423 @@ void core_SPC5_8rVc_Spmv_float(const long int nbRows, const int* rowSizes,
     }
 }
 
+#else // USE_AVX512
+
+#include <immintrin.h>
+
+extern "C" void SPC5_opti_merge_double(double dest[], const double src[], const int nbValues){
+    const int nbValuesVectorized = (nbValues/8)*8;
+    for(int idxVal = 0 ; idxVal < nbValuesVectorized ; idxVal += 8){
+            _mm512_storeu_pd(&dest[idxVal],_mm512_add_pd(_mm512_loadu_pd(&dest[idxVal]), _mm512_loadu_pd(&src[idxVal])));
+    }
+    for(int idxVal = nbValuesVectorized ; idxVal < nbValues ; idxVal += 1){
+            dest[idxVal] += src[idxVal];
+    }
+}
+
+extern "C" void SPC5_opti_merge_float(float dest[], const float src[], const int nbValues){
+    const int nbValuesVectorized = (nbValues/16)*16;
+    for(int idxVal = 0 ; idxVal < nbValuesVectorized ; idxVal += 16){
+            _mm512_storeu_ps(&dest[idxVal],_mm512_add_ps(_mm512_loadu_ps(&dest[idxVal]), _mm512_loadu_ps(&src[idxVal])));
+    }
+    for(int idxVal = nbValuesVectorized ; idxVal < nbValues ; idxVal += 1){
+            dest[idxVal] += src[idxVal];
+    }
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////
+
+void core_SPC5_1rVc_Spmv_double(const long int nbRows, const int* rowSizes,
+                                const unsigned char* headers,
+                                const double* values,
+                                const double* x, double* y){
+    const __m512d zeros = _mm512_set1_pd(0);
+
+    for (int idxRow = 0; idxRow < nbRows; ++idxRow) {
+            __m512d sum_vec = zeros;
+
+            for (int idxBlock = rowSizes[idxRow]; idxBlock < rowSizes[idxRow + 1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned char mask = headers[4];
+
+                const __m512d xvals = _mm512_loadu_pd(&x[idxCol]);
+                const __m512d block = _mm512_maskz_expandloadu_pd(mask, values);
+
+                const int increment = _mm_popcnt_u32(mask);
+                values += increment;
+
+                sum_vec = _mm512_fmadd_pd(block, xvals, sum_vec);
+
+                headers += 5;
+            }
+
+            const double sum = _mm512_reduce_add_pd(sum_vec);
+            y[idxRow] += sum;
+    }
+}
+
+void core_SPC5_1rVc_Spmv_float(const long int nbRows, const int* rowSizes,
+                               const unsigned char* headers,
+                               const float* values,
+                               const float* x, float* y){
+    const __m512 zeros = _mm512_set1_ps(0);
+
+    for (int idxRow = 0; idxRow < nbRows; ++idxRow) {
+            __m512 sum_vec = zeros;
+
+            for (int idxBlock = rowSizes[idxRow]; idxBlock < rowSizes[idxRow + 1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned short mask = *(const unsigned short *)&headers[4];
+
+                const __m512 xvals = _mm512_loadu_ps(&x[idxCol]);
+                const __m512 block = _mm512_maskz_expandloadu_ps(mask, values);
+
+                const int increment = _mm_popcnt_u32(mask);
+                values += increment;
+
+                sum_vec = _mm512_fmadd_ps(block, xvals, sum_vec);
+
+                headers += 6;
+            }
+
+            const float sum = _mm512_reduce_add_ps(sum_vec);
+            y[idxRow] += sum;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+void core_SPC5_2rVc_Spmv_double(const long int nbRows, const int* rowSizes,
+                                const unsigned char* headers,
+                                const double* values,
+                                const double* x, double* y){
+    const __m512d zeros = _mm512_set1_pd(0);
+
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 2) {
+            const int idxRowBlock = idxRow/2;
+            __m512d sum_vec = zeros;
+            __m512d sum_vec_1 = zeros;
+
+            for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock + 1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned char mask = headers[4];
+                const unsigned char mask_1 = headers[5];
+
+                const __m512d xvals = _mm512_loadu_pd(&x[idxCol]);
+
+                const int increment = _mm_popcnt_u32(mask);
+                sum_vec = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask, values), xvals, sum_vec);
+                values += increment;
+
+                const int increment_1 = _mm_popcnt_u32(mask_1);
+                sum_vec_1 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_1, values), xvals, sum_vec_1);
+                values += increment_1;
+
+                headers += 6;
+            }
+
+            y[idxRow] += _mm512_reduce_add_pd(sum_vec);
+            y[idxRow+1] += _mm512_reduce_add_pd(sum_vec_1);
+    }
+}
+
+
+
+void core_SPC5_2rVc_Spmv_float(const long int nbRows, const int* rowSizes,
+                               const unsigned char* headers,
+                               const float* values,
+                               const float* x, float* y){
+    const __m512 zeros = _mm512_set1_ps(0);
+
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 2) {
+            const int idxRowBlock = idxRow/2;
+            __m512 sum_vec = zeros;
+            __m512 sum_vec_1 = zeros;
+
+            for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock + 1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned short mask = *(const unsigned short *)&headers[4];
+                const unsigned short mask_1 = *(const unsigned short *)&headers[6];
+
+                const __m512 xvals = _mm512_loadu_ps(&x[idxCol]);
+
+                const int increment = _mm_popcnt_u32(mask);
+                sum_vec = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask, values), xvals, sum_vec);
+                values += increment;
+
+                const int increment_1 = _mm_popcnt_u32(mask_1);
+                sum_vec_1 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_1, values), xvals, sum_vec_1);
+                values += increment_1;
+
+                headers += 8;
+            }
+
+            y[idxRow] += _mm512_reduce_add_ps(sum_vec);
+            y[idxRow+1] += _mm512_reduce_add_ps(sum_vec_1);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+void core_SPC5_4rVc_Spmv_double(const long int nbRows, const int* rowSizes,
+                                const unsigned char* headers,
+                                const double* values,
+                                const double* x, double* y){
+    const __m512d zeros = _mm512_set1_pd(0);
+
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 4) {
+            const int idxRowBlock = idxRow/4;
+            __m512d sum_vec = zeros;
+            __m512d sum_vec_1 = zeros;
+            __m512d sum_vec_2 = zeros;
+            __m512d sum_vec_3 = zeros;
+
+            for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock + 1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned char mask = headers[4];
+                const unsigned char mask_1 = headers[5];
+                const unsigned char mask_2 = headers[6];
+                const unsigned char mask_3 = headers[7];
+
+                const __m512d xvals = _mm512_loadu_pd(&x[idxCol]);
+
+                const int increment = _mm_popcnt_u32(mask);
+                sum_vec = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask, values), xvals, sum_vec);
+                values += increment;
+
+                const int increment_1 = _mm_popcnt_u32(mask_1);
+                sum_vec_1 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_1, values), xvals, sum_vec_1);
+                values += increment_1;
+
+                const int increment_2 = _mm_popcnt_u32(mask_2);
+                sum_vec_2 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_2, values), xvals, sum_vec_2);
+                values += increment_2;
+
+                const int increment_3 = _mm_popcnt_u32(mask_3);
+                sum_vec_3 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_3, values), xvals, sum_vec_3);
+                values += increment_3;
+
+                headers += 8;
+            }
+
+            y[idxRow] += _mm512_reduce_add_pd(sum_vec);
+            y[idxRow+1] += _mm512_reduce_add_pd(sum_vec_1);
+            y[idxRow+2] += _mm512_reduce_add_pd(sum_vec_2);
+            y[idxRow+3] += _mm512_reduce_add_pd(sum_vec_3);
+    }
+}
 
 
 
 
+void core_SPC5_4rVc_Spmv_float(const long int nbRows, const int* rowSizes,
+                               const unsigned char* headers,
+                               const float* values,
+                               const float* x, float* y){
+    const __m512 zeros = _mm512_set1_ps(0);
 
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 4) {
+            const int idxRowBlock = idxRow/4;
+            __m512 sum_vec = zeros;
+            __m512 sum_vec_1 = zeros;
+            __m512 sum_vec_2 = zeros;
+            __m512 sum_vec_3 = zeros;
+
+            for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock + 1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned short mask = *(const unsigned short *)&headers[4];
+                const unsigned short mask_1 = *(const unsigned short *)&headers[6];
+                const unsigned short mask_2 = *(const unsigned short *)&headers[8];
+                const unsigned short mask_3 = *(const unsigned short *)&headers[10];
+
+                const __m512 xvals = _mm512_loadu_ps(&x[idxCol]);
+
+                const int increment = _mm_popcnt_u32(mask);
+                sum_vec = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask, values), xvals, sum_vec);
+                values += increment;
+
+                const int increment_1 = _mm_popcnt_u32(mask_1);
+                sum_vec_1 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_1, values), xvals, sum_vec_1);
+                values += increment_1;
+
+                const int increment_2 = _mm_popcnt_u32(mask_2);
+                sum_vec_2 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_2, values), xvals, sum_vec_2);
+                values += increment_2;
+
+                const int increment_3 = _mm_popcnt_u32(mask_3);
+                sum_vec_3 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_3, values), xvals, sum_vec_3);
+                values += increment_3;
+
+                headers += 12;
+            }
+
+            y[idxRow] += _mm512_reduce_add_ps(sum_vec);
+            y[idxRow+1] += _mm512_reduce_add_ps(sum_vec_1);
+            y[idxRow+2] += _mm512_reduce_add_ps(sum_vec_2);
+            y[idxRow+3] += _mm512_reduce_add_ps(sum_vec_3);
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowSizes,
+                                const unsigned char* headers,
+                                const double* values,
+                                const double* x, double* y){
+    const __m512d zeros = _mm512_set1_pd(0);
+
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 8) {
+            const int idxRowBlock = idxRow/8;
+            __m512d sum_vec = zeros;
+            __m512d sum_vec_1 = zeros;
+            __m512d sum_vec_2 = zeros;
+            __m512d sum_vec_3 = zeros;
+            __m512d sum_vec_4 = zeros;
+            __m512d sum_vec_5 = zeros;
+            __m512d sum_vec_6 = zeros;
+            __m512d sum_vec_7 = zeros;
+
+            for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock + 1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned char mask = headers[4];
+                const unsigned char mask_1 = headers[5];
+                const unsigned char mask_2 = headers[6];
+                const unsigned char mask_3 = headers[7];
+                const unsigned char mask_4 = headers[8];
+                const unsigned char mask_5 = headers[9];
+                const unsigned char mask_6 = headers[10];
+                const unsigned char mask_7 = headers[11];
+
+                const __m512d xvals = _mm512_loadu_pd(&x[idxCol]);
+
+                const int increment = _mm_popcnt_u32(mask);
+                sum_vec = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask, values), xvals, sum_vec);
+                values += increment;
+
+                const int increment_1 = _mm_popcnt_u32(mask_1);
+                sum_vec_1 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_1, values), xvals, sum_vec_1);
+                values += increment_1;
+
+                const int increment_2 = _mm_popcnt_u32(mask_2);
+                sum_vec_2 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_2, values), xvals, sum_vec_2);
+                values += increment_2;
+
+                const int increment_3 = _mm_popcnt_u32(mask_3);
+                sum_vec_3 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_3, values), xvals, sum_vec_3);
+                values += increment_3;
+
+                const int increment_4 = _mm_popcnt_u32(mask_4);
+                sum_vec_4 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_4, values), xvals, sum_vec_4);
+                values += increment_4;
+
+                const int increment_5 = _mm_popcnt_u32(mask_5);
+                sum_vec_5 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_5, values), xvals, sum_vec_5);
+                values += increment_5;
+
+                const int increment_6 = _mm_popcnt_u32(mask_6);
+                sum_vec_6 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_6, values), xvals, sum_vec_6);
+                values += increment_6;
+
+                const int increment_7 = _mm_popcnt_u32(mask_7);
+                sum_vec_7 = _mm512_fmadd_pd(_mm512_maskz_expandloadu_pd(mask_7, values), xvals, sum_vec_7);
+                values += increment_7;
+
+                headers += 12;
+            }
+
+            y[idxRow] += _mm512_reduce_add_pd(sum_vec);
+            y[idxRow+1] += _mm512_reduce_add_pd(sum_vec_1);
+            y[idxRow+2] += _mm512_reduce_add_pd(sum_vec_2);
+            y[idxRow+3] += _mm512_reduce_add_pd(sum_vec_3);
+            y[idxRow+4] += _mm512_reduce_add_pd(sum_vec_4);
+            y[idxRow+5] += _mm512_reduce_add_pd(sum_vec_5);
+            y[idxRow+6] += _mm512_reduce_add_pd(sum_vec_6);
+            y[idxRow+7] += _mm512_reduce_add_pd(sum_vec_7);
+    }
+}
+
+
+
+
+void core_SPC5_8rVc_Spmv_float(const long int nbRows, const int* rowSizes,
+                               const unsigned char* headers,
+                               const float* values,
+                               const float* x, float* y){
+    const __m512 zeros = _mm512_set1_ps(0);
+
+    for (int idxRow = 0; idxRow < nbRows; idxRow += 8) {
+            const int idxRowBlock = idxRow/8;
+            __m512 sum_vec = zeros;
+            __m512 sum_vec_1 = zeros;
+            __m512 sum_vec_2 = zeros;
+            __m512 sum_vec_3 = zeros;
+            __m512 sum_vec_4 = zeros;
+            __m512 sum_vec_5 = zeros;
+            __m512 sum_vec_6 = zeros;
+            __m512 sum_vec_7 = zeros;
+
+            for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock + 1]; ++idxBlock) {
+                const int idxCol = *((const int *)headers);
+                const unsigned short mask = *(const unsigned short *)&headers[4];
+                const unsigned short mask_1 = *(const unsigned short *)&headers[6];
+                const unsigned short mask_2 = *(const unsigned short *)&headers[8];
+                const unsigned short mask_3 = *(const unsigned short *)&headers[10];
+                const unsigned short mask_4 = *(const unsigned short *)&headers[12];
+                const unsigned short mask_5 = *(const unsigned short *)&headers[14];
+                const unsigned short mask_6 = *(const unsigned short *)&headers[16];
+                const unsigned short mask_7 = *(const unsigned short *)&headers[18];
+
+                const __m512 xvals = _mm512_loadu_ps(&x[idxCol]);
+
+                const int increment = _mm_popcnt_u32(mask);
+                sum_vec = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask, values), xvals, sum_vec);
+                values += increment;
+
+                const int increment_1 = _mm_popcnt_u32(mask_1);
+                sum_vec_1 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_1, values), xvals, sum_vec_1);
+                values += increment_1;
+
+                const int increment_2 = _mm_popcnt_u32(mask_2);
+                sum_vec_2 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_2, values), xvals, sum_vec_2);
+                values += increment_2;
+
+                const int increment_3 = _mm_popcnt_u32(mask_3);
+                sum_vec_3 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_3, values), xvals, sum_vec_3);
+                values += increment_3;
+
+                const int increment_4 = _mm_popcnt_u32(mask_4);
+                sum_vec_4 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_4, values), xvals, sum_vec_4);
+                values += increment_4;
+
+                const int increment_5 = _mm_popcnt_u32(mask_5);
+                sum_vec_5 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_5, values), xvals, sum_vec_5);
+                values += increment_5;
+
+                const int increment_6 = _mm_popcnt_u32(mask_6);
+                sum_vec_6 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_6, values), xvals, sum_vec_6);
+                values += increment_6;
+
+                const int increment_7 = _mm_popcnt_u32(mask_7);
+                sum_vec_7 = _mm512_fmadd_ps(_mm512_maskz_expandloadu_ps(mask_7, values), xvals, sum_vec_7);
+                values += increment_7;
+
+                headers += 20;
+            }
+
+            y[idxRow] += _mm512_reduce_add_ps(sum_vec);
+            y[idxRow+1] += _mm512_reduce_add_ps(sum_vec_1);
+            y[idxRow+2] += _mm512_reduce_add_ps(sum_vec_2);
+            y[idxRow+3] += _mm512_reduce_add_ps(sum_vec_3);
+            y[idxRow+4] += _mm512_reduce_add_ps(sum_vec_4);
+            y[idxRow+5] += _mm512_reduce_add_ps(sum_vec_5);
+            y[idxRow+6] += _mm512_reduce_add_ps(sum_vec_6);
+            y[idxRow+7] += _mm512_reduce_add_ps(sum_vec_7);
+    }
+}
+
+
+#endif // USE_AVX512
 
 #endif

@@ -345,7 +345,7 @@ void builddense(const int dim,
             Ijv<ValueType> value;
             value.i = idxRow;
             value.j = idxCol;
-            value.v = 1;
+            value.v = 1*idxRow+idxCol;
             (*values)[idxRow*dim + idxCol] = value;
         }
     }
@@ -395,7 +395,7 @@ int main(int argc, char** argv){
 
     std::unique_ptr<ValueType[]> x(new ValueType[nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_X]());
     for(int idxX = 0 ; idxX < nbCols ; ++idxX){
-        x[idxX] = 1.0;
+        x[idxX] = ValueType(idxX%98);
     }
 
     std::unique_ptr<ValueType[]> ycsr(new ValueType[nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
