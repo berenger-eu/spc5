@@ -11,7 +11,7 @@ set -x
 
 cd /projets/schnaps/spc5-arm-sve/build/
 
-module load build/cmake/3.15.3 compiler/gcc/12.2.0
+module load build/cmake/3.15.3 compiler/gcc/11.2.0
 
 make clean
 
