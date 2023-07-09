@@ -388,28 +388,29 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
 
 #pragma omp parallel num_threads(nbThreads)
     {
-        intervals[omp_get_thread_num()].threadY.reset(new ValueType[intervals[omp_get_thread_num()].numberOfRows + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
+        const int idxThread = omp_get_thread_num();
+        intervals[idxThread].threadY.reset(new ValueType[intervals[idxThread].numberOfRows + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
 
-        intervals[omp_get_thread_num()].threadRowsSize.reset(new int[intervals[omp_get_thread_num()].numberOfRows + 1]());
-        memcpy(intervals[omp_get_thread_num()].threadRowsSize.get(),
-                mat.rowsSize.get()+intervals[omp_get_thread_num()].startingRow/nbRowsPerBlock,
-                sizeof(int)*(intervals[omp_get_thread_num()].numberOfRows/nbRowsPerBlock + 1));
+        intervals[idxThread].threadRowsSize.reset(new int[intervals[idxThread].numberOfRows + 1]());
+        memcpy(intervals[idxThread].threadRowsSize.get(),
+                mat.rowsSize.get()+intervals[idxThread].startingRow/nbRowsPerBlock,
+                sizeof(int)*(intervals[idxThread].numberOfRows/nbRowsPerBlock + 1));
 
-        const int nbBlocks = mat.rowsSize[intervals[omp_get_thread_num()].startingRow/nbRowsPerBlock + intervals[omp_get_thread_num()].numberOfRows]
-                           - mat.rowsSize[intervals[omp_get_thread_num()].startingRow/nbRowsPerBlock];
+        const int nbBlocks = mat.rowsSize[intervals[idxThread].startingRow/nbRowsPerBlock + intervals[idxThread].numberOfRows]
+                           - mat.rowsSize[intervals[idxThread].startingRow/nbRowsPerBlock];
         const int maskSize = (sizeof(ValueType)==4?2:1);
 
-        intervals[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.reset(new unsigned char[nbBlocks*(4+maskSize*nbRowsPerBlock)]());
-        memcpy(intervals[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.get(),
-                mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[intervals[omp_get_thread_num()/nbRowsPerBlock].startingRow]*(4+maskSize*nbRowsPerBlock),
+        intervals[idxThread].threadBlocksColumnIndexesWithMasks.reset(new unsigned char[nbBlocks*(4+maskSize*nbRowsPerBlock)]());
+        memcpy(intervals[idxThread].threadBlocksColumnIndexesWithMasks.get(),
+                mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[intervals[idxThread/nbRowsPerBlock].startingRow]*(4+maskSize*nbRowsPerBlock),
                 sizeof(unsigned char)*(nbBlocks*(4+maskSize*nbRowsPerBlock)));
 
-        const int nbValues = (omp_get_thread_num()+1 != nbThreads ? intervals[omp_get_thread_num()+1].valuesOffset : idxVal)
-                - intervals[omp_get_thread_num()].valuesOffset;
+        const int nbValues = (idxThread+1 != nbThreads ? intervals[idxThread+1].valuesOffset : idxVal)
+                - intervals[idxThread].valuesOffset;
 
-        intervals[omp_get_thread_num()].threadValues.reset(new ValueType[nbValues]());
-        memcpy(intervals[omp_get_thread_num()].threadValues.get(),
-                mat.values.get()+intervals[omp_get_thread_num()].valuesOffset,
+        intervals[idxThread].threadValues.reset(new ValueType[nbValues]());
+        memcpy(intervals[idxThread].threadValues.get(),
+                mat.values.get()+intervals[idxThread].valuesOffset,
                 sizeof(ValueType)*nbValues);
 
     }
@@ -1502,8 +1503,9 @@ void core_SPC5_2rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             const uint64_t increment = svcntp_b64(mask_vec, mask_vec);
             const uint64_t increment_1 = svcntp_b64(mask_vec_1, mask_vec_1);
 
-            const svfloat64_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
-            const svfloat64_t xvals_1 = svcompact(mask_vec_1, svld1(mask_vec_1, &x[idxCol]));
+            const svfloat64_t xvec = svld1(true_vec, &x[idxCol]);
+            const svfloat64_t xvals = svcompact(mask_vec, xvec);
+            const svfloat64_t xvals_1 = svcompact(mask_vec_1, xvec);
 
             const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values);
             values += increment;
@@ -1557,8 +1559,9 @@ void core_SPC5_2rVc_Spmv_float(const long int nbRows, const int* rowSizes,
             const uint32_t increment = svcntp_b32(mask_vec, mask_vec);
             const uint32_t increment_1 = svcntp_b32(mask_vec_1, mask_vec_1);
 
-            const svfloat32_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
-            const svfloat32_t xvals_1 = svcompact(mask_vec_1, svld1(mask_vec_1, &x[idxCol]));
+            const svfloat32_t xvec = svld1(true_vec, &x[idxCol]);
+            const svfloat32_t xvals = svcompact(mask_vec, xvec);
+            const svfloat32_t xvals_1 = svcompact(mask_vec_1, xvec);
 
             const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values);
             values += increment;
@@ -1622,10 +1625,11 @@ void core_SPC5_4rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             const uint64_t increment_2 = svcntp_b64(mask_vec_2, mask_vec_2);
             const uint64_t increment_3 = svcntp_b64(mask_vec_3, mask_vec_3);
 
-            const svfloat64_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
-            const svfloat64_t xvals_1 = svcompact(mask_vec_1, svld1(mask_vec_1, &x[idxCol]));
-            const svfloat64_t xvals_2 = svcompact(mask_vec_2, svld1(mask_vec_2, &x[idxCol]));
-            const svfloat64_t xvals_3 = svcompact(mask_vec_3, svld1(mask_vec_3, &x[idxCol]));
+            const svfloat64_t xvec = svld1(true_vec, &x[idxCol]);
+            const svfloat64_t xvals = svcompact(mask_vec, xvec);
+            const svfloat64_t xvals_1 = svcompact(mask_vec_1, xvec);
+            const svfloat64_t xvals_2 = svcompact(mask_vec_2, xvec);
+            const svfloat64_t xvals_3 = svcompact(mask_vec_3, xvec);
 
             const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values);
             values += increment;
@@ -1702,10 +1706,11 @@ void core_SPC5_4rVc_Spmv_float(const long int nbRows, const int* rowSizes,
             const uint32_t increment_2 = svcntp_b32(mask_vec_2, mask_vec_2);
             const uint32_t increment_3 = svcntp_b32(mask_vec_3, mask_vec_3);
 
-            const svfloat32_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
-            const svfloat32_t xvals_1 = svcompact(mask_vec_1, svld1(mask_vec_1, &x[idxCol]));
-            const svfloat32_t xvals_2 = svcompact(mask_vec_2, svld1(mask_vec_2, &x[idxCol]));
-            const svfloat32_t xvals_3 = svcompact(mask_vec_3, svld1(mask_vec_3, &x[idxCol]));
+            const svfloat32_t xvec = svld1(true_vec, &x[idxCol]);
+            const svfloat32_t xvals = svcompact(mask_vec, xvec);
+            const svfloat32_t xvals_1 = svcompact(mask_vec_1, xvec);
+            const svfloat32_t xvals_2 = svcompact(mask_vec_2, xvec);
+            const svfloat32_t xvals_3 = svcompact(mask_vec_3, xvec);
 
             const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values);
             values += increment;
@@ -1804,14 +1809,15 @@ void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             const uint64_t increment_6 = svcntp_b64(mask_vec_6, mask_vec_6);
             const uint64_t increment_7 = svcntp_b64(mask_vec_7, mask_vec_7);
 
-            const svfloat64_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
-            const svfloat64_t xvals_1 = svcompact(mask_vec_1, svld1(mask_vec_1, &x[idxCol]));
-            const svfloat64_t xvals_2 = svcompact(mask_vec_2, svld1(mask_vec_2, &x[idxCol]));
-            const svfloat64_t xvals_3 = svcompact(mask_vec_3, svld1(mask_vec_3, &x[idxCol]));
-            const svfloat64_t xvals_4 = svcompact(mask_vec_4, svld1(mask_vec_4, &x[idxCol]));
-            const svfloat64_t xvals_5 = svcompact(mask_vec_5, svld1(mask_vec_5, &x[idxCol]));
-            const svfloat64_t xvals_6 = svcompact(mask_vec_6, svld1(mask_vec_6, &x[idxCol]));
-            const svfloat64_t xvals_7 = svcompact(mask_vec_7, svld1(mask_vec_7, &x[idxCol]));
+            const svfloat64_t xvec = svld1(true_vec, &x[idxCol]);
+            const svfloat64_t xvals = svcompact(mask_vec, xvec);
+            const svfloat64_t xvals_1 = svcompact(mask_vec_1, xvec);
+            const svfloat64_t xvals_2 = svcompact(mask_vec_2, xvec);
+            const svfloat64_t xvals_3 = svcompact(mask_vec_3, xvec);
+            const svfloat64_t xvals_4 = svcompact(mask_vec_4, xvec);
+            const svfloat64_t xvals_5 = svcompact(mask_vec_5, xvec);
+            const svfloat64_t xvals_6 = svcompact(mask_vec_6, xvec);
+            const svfloat64_t xvals_7 = svcompact(mask_vec_7, xvec);
 
             const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values);
             values += increment;
@@ -1932,14 +1938,15 @@ void core_SPC5_8rVc_Spmv_float(const long int nbRows, const int* rowSizes,
             const uint32_t increment_6 = svcntp_b32(mask_vec_6, mask_vec_6);
             const uint32_t increment_7 = svcntp_b32(mask_vec_7, mask_vec_7);
 
-            const svfloat32_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
-            const svfloat32_t xvals_1 = svcompact(mask_vec_1, svld1(mask_vec_1, &x[idxCol]));
-            const svfloat32_t xvals_2 = svcompact(mask_vec_2, svld1(mask_vec_2, &x[idxCol]));
-            const svfloat32_t xvals_3 = svcompact(mask_vec_3, svld1(mask_vec_3, &x[idxCol]));
-            const svfloat32_t xvals_4 = svcompact(mask_vec_4, svld1(mask_vec_4, &x[idxCol]));
-            const svfloat32_t xvals_5 = svcompact(mask_vec_5, svld1(mask_vec_5, &x[idxCol]));
-            const svfloat32_t xvals_6 = svcompact(mask_vec_6, svld1(mask_vec_6, &x[idxCol]));
-            const svfloat32_t xvals_7 = svcompact(mask_vec_7, svld1(mask_vec_7, &x[idxCol]));
+            const svfloat32_t xvec = svld1(true_vec, &x[idxCol]);
+            const svfloat32_t xvals = svcompact(mask_vec, xvec);
+            const svfloat32_t xvals_1 = svcompact(mask_vec_1, xvec);
+            const svfloat32_t xvals_2 = svcompact(mask_vec_2, xvec);
+            const svfloat32_t xvals_3 = svcompact(mask_vec_3, xvec);
+            const svfloat32_t xvals_4 = svcompact(mask_vec_4, xvec);
+            const svfloat32_t xvals_5 = svcompact(mask_vec_5, xvec);
+            const svfloat32_t xvals_6 = svcompact(mask_vec_6, xvec);
+            const svfloat32_t xvals_7 = svcompact(mask_vec_7, xvec);
 
             const svfloat32_t block = svld1(svwhilelt_b32_s32(0, increment), values);
             values += increment;
