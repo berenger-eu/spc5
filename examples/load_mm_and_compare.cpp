@@ -379,7 +379,7 @@ int main(int argc, char** argv){
 #ifndef USEDENSE
     loadMM<ValueType>(argv[1], &values, &nbRows, &nbCols, &nbValues);
 #else
-    builddense<ValueType>(2048, &values, &nbRows, &nbCols, &nbValues);
+    builddense<ValueType>((argc == 2 ? atoi(argv[1]) : 2048), &values, &nbRows, &nbCols, &nbValues);
 #endif
 
     std::cout << "-> number of rows = " << nbRows << std::endl;
@@ -499,6 +499,26 @@ int main(int argc, char** argv){
 
         for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
             SPC5_4rVc_Spmv<ValueType>(csr, x.get(), y.get());
+        }
+
+        timer.stop();
+        std::cout << "-> Done in " << timer.getElapsed() << "s\n";
+        std::cout << "-> Number of blocks " << csr.numberOfBlocks << "( avg. " << double(csr.numberOfNNZ)/double(csr.numberOfBlocks)<< " values per block)\n";
+        std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
+        std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
+    }
+    {
+        memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
+
+        std::cout << "Start usual 8rVc: "<< std::endl;
+        dtimer timerConversion;
+        SPC5Mat<ValueType> csr = COO_to_SPC5_8rVc<ValueType>(nbRows, nbCols, values.get(), nbValues);
+        timerConversion.stop();
+        std::cout << "Conversion in : " << timerConversion.getElapsed() << "s\n";
+        dtimer timer;
+
+        for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
+            SPC5_8rVc_Spmv<ValueType>(csr, x.get(), y.get());
         }
 
         timer.stop();

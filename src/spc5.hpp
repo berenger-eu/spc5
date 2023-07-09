@@ -19,7 +19,8 @@ enum SPC5_MATRIX_TYPE{
     FORMAT_CSR,
     FORMAT_1rVc_WT,
     FORMAT_2rVc,
-    FORMAT_4rVc
+    FORMAT_4rVc,
+    FORMAT_8rVc
 };
 
 enum SPC5_VEC_PADDING {
@@ -975,6 +976,170 @@ inline void SPC5_4rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[]
 #endif
 
 
+//////////////////////////////////////////////////////////////////////////////
+/// 8rVc => 8 rows, VEC columns
+//////////////////////////////////////////////////////////////////////////////
+
+template <class ValueType>
+inline void CSR_to_SPC5_8rVc(SPC5Mat<ValueType>* csr){
+    core_CSR_to_SPC5_rVc<ValueType, 8>(csr);
+    csr->format = SPC5_MATRIX_TYPE::FORMAT_8rVc;
+}
+
+template <class ValueType>
+inline SPC5Mat<ValueType> COO_to_SPC5_8rVc(const int nbRows, const int nbCols,
+                                           Ijv<ValueType> values[], int nbValues){
+    SPC5Mat<ValueType> mat = COO_unsorted_to_CSR(nbRows, nbCols, values, nbValues);
+    CSR_to_SPC5_8rVc(&mat);
+    return mat;
+}
+
+template <class ValueType>
+inline void SPC5_8rVc_Spmv_scalar(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[]){
+    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
+    core_SPC5_rVc_Spmv_scalar<ValueType,8>(mat, x, y);
+}
+
+template <class ValueType, class FuncType>
+inline void SPC5_8rVc_iterate(const SPC5Mat<ValueType>& mat, FuncType&& func){
+    assert(mat->format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
+    core_SPC5_rVc_iterate<ValueType,8>(mat, std::forward<FuncType>(func));
+}
+
+template <class ValueType>
+inline int SPC5_8rVc_block_count(const SPC5Mat<ValueType>& csr){
+    return core_SPC5_block_count<ValueType,8,ValPerVec<ValueType>::size>(csr);
+}
+
+extern "C" void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowsSizes,
+                                           const unsigned char* blocksColumnIndexesWithMasks,
+                                           const double* values,
+                                           const double* x, double* y);
+extern "C" void core_SPC5_8rVc_Spmv_float(const long int nbRows, const int* rowsSizes,
+                                          const unsigned char* blocksColumnIndexesWithMasks,
+                                          const float* values,
+                                          const float* x, float* y);
+
+template <class ValueType>
+inline void SPC5_8rVc_Spmv(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[]);
+
+template <>
+inline void SPC5_8rVc_Spmv<double>(const SPC5Mat<double>& mat, const double x[], double y[]){
+    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
+    core_SPC5_8rVc_Spmv_double(mat.numberOfRows, mat.rowsSize.get(),
+                               mat.blocksColumnIndexesWithMasks.get(), mat.values.get(),
+                               x, y);
+}
+
+template <>
+inline void SPC5_8rVc_Spmv<float>(const SPC5Mat<float>& mat, const float x[], float y[]){
+    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
+    core_SPC5_8rVc_Spmv_float(mat.numberOfRows, mat.rowsSize.get(),
+                              mat.blocksColumnIndexesWithMasks.get(), mat.values.get(),
+                              x, y);
+}
+
+
+
+#ifdef _OPENMP
+
+template <class ValueType>
+inline std::vector<ThreadInterval<ValueType>> SPC5_8rVc_split_omp(const SPC5Mat<ValueType>& mat, const int numThreads){
+    return core_SPC5_rVc_threadsplit<ValueType,8>(mat, numThreads);
+}
+
+template <class ValueType>
+inline std::vector<ThreadInterval<ValueType>> SPC5_8rVc_split_omp(const SPC5Mat<ValueType>& mat){
+    return core_SPC5_rVc_threadsplit<ValueType,8>(mat, omp_get_max_threads());
+}
+
+
+template <class ValueType>
+inline void SPC5_8rVc_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[],
+                               const std::vector<ThreadInterval<ValueType>>& threadsVecs);
+#ifdef SPLIT_NUMA
+template <>
+inline void SPC5_8rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
+                                       const std::vector<ThreadInterval<double>>& threadsVecs){
+    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
+    const int numThreads = int(threadsVecs.size());
+#pragma omp parallel num_threads(numThreads)
+    {
+        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(double)*threadsVecs[omp_get_thread_num()].numberOfRows);
+
+        core_SPC5_8rVc_Spmv_double(threadsVecs[omp_get_thread_num()].numberOfRows,
+                                   threadsVecs[omp_get_thread_num()].threadRowsSize.get(),
+                                   threadsVecs[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.get(),
+                                   threadsVecs[omp_get_thread_num()].threadValues.get(),
+                                   x, threadsVecs[omp_get_thread_num()].threadY.get());
+
+        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
+                        threadsVecs[omp_get_thread_num()].numberOfRows);
+    }
+}
+
+template <>
+inline void SPC5_8rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
+                                      const std::vector<ThreadInterval<float>>& threadsVecs){
+    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
+    const int numThreads = int(threadsVecs.size());
+#pragma omp parallel num_threads(numThreads)
+    {
+        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(float)*threadsVecs[omp_get_thread_num()].numberOfRows);
+
+        core_SPC5_8rVc_Spmv_float(threadsVecs[omp_get_thread_num()].numberOfRows,
+                                  threadsVecs[omp_get_thread_num()].threadRowsSize.get(),
+                                  threadsVecs[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.get(),
+                                  threadsVecs[omp_get_thread_num()].threadValues.get(),
+                                  x, threadsVecs[omp_get_thread_num()].threadY.get());
+
+        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
+                        threadsVecs[omp_get_thread_num()].numberOfRows);
+    }
+}
+#else
+template <>
+inline void SPC5_8rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
+                                       const std::vector<ThreadInterval<double>>& threadsVecs){
+    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
+    const int numThreads = int(threadsVecs.size());
+#pragma omp parallel num_threads(numThreads)
+    {
+        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(double)*threadsVecs[omp_get_thread_num()].numberOfRows);
+
+        core_SPC5_8rVc_Spmv_double(threadsVecs[omp_get_thread_num()].numberOfRows,
+                                   mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
+                                   mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*8,
+                                   mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
+                                   x, threadsVecs[omp_get_thread_num()].threadY.get());
+
+        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
+                        threadsVecs[omp_get_thread_num()].numberOfRows);
+    }
+}
+
+template <>
+inline void SPC5_8rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
+                                      const std::vector<ThreadInterval<float>>& threadsVecs){
+    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
+    const int numThreads = int(threadsVecs.size());
+#pragma omp parallel num_threads(numThreads)
+    {
+        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(float)*threadsVecs[omp_get_thread_num()].numberOfRows);
+
+        core_SPC5_8rVc_Spmv_float(threadsVecs[omp_get_thread_num()].numberOfRows,
+                                  mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
+                                  mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*12,
+                                  mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
+                                  x, threadsVecs[omp_get_thread_num()].threadY.get());
+
+        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
+                        threadsVecs[omp_get_thread_num()].numberOfRows);
+    }
+}
+#endif
+
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -999,6 +1164,11 @@ inline void CSR_to_SPC5(SPC5Mat<ValueType>* mat, const SPC5_MATRIX_TYPE matType)
         CSR_to_SPC5_4rVc<ValueType>(mat);
         }
         break;
+    case SPC5_MATRIX_TYPE::FORMAT_8rVc :
+    {
+        CSR_to_SPC5_8rVc<ValueType>(mat);
+    }
+    break;
     default :
         {
             throw std::invalid_argument("CSR_to_SPC5 : Unknown format type");
@@ -1025,6 +1195,11 @@ inline void SPC5_Spmv_scalar(const SPC5Mat<ValueType>& mat, const ValueType x[],
         SPC5_4rVc_Spmv_scalar<ValueType>(mat, x, y);
         }
         break;
+    case SPC5_MATRIX_TYPE::FORMAT_8rVc :
+    {
+        SPC5_8rVc_Spmv_scalar<ValueType>(mat, x, y);
+    }
+    break;
     case SPC5_MATRIX_TYPE::FORMAT_CSR :
         {
         CSR_Spmv_scalar<ValueType>(mat, x, y);
@@ -1055,6 +1230,11 @@ inline void SPC5_iterate(const SPC5Mat<ValueType>& mat, FuncType&& func){
         SPC5_4rVc_iterate<ValueType>(mat, std::forward<FuncType>(func));
         }
         break;
+    case SPC5_MATRIX_TYPE::FORMAT_8rVc :
+    {
+        SPC5_8rVc_iterate<ValueType>(mat, std::forward<FuncType>(func));
+    }
+    break;
     case SPC5_MATRIX_TYPE::FORMAT_CSR :
         {
         CSR_iterate<ValueType>(mat, std::forward<FuncType>(func));
@@ -1085,6 +1265,11 @@ inline void SPC5_Spmv(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueT
         SPC5_4rVc_Spmv<ValueType>(mat, x, y);
         }
         break;
+    case SPC5_MATRIX_TYPE::FORMAT_8rVc :
+    {
+        SPC5_8rVc_Spmv<ValueType>(mat, x, y);
+    }
+    break;
     default :
         {
             throw std::invalid_argument("SPC5_Spmv : Unknown format type");
@@ -1110,6 +1295,11 @@ inline void SPC5_block_count(const SPC5Mat<ValueType>& csr, const SPC5_MATRIX_TY
         SPC5_4rVc_block_count<ValueType>(csr);
         }
         break;
+    case SPC5_MATRIX_TYPE::FORMAT_8rVc :
+    {
+        SPC5_8rVc_block_count<ValueType>(csr);
+    }
+    break;
     default :
         {
             throw std::invalid_argument("SPC5_Spmv : Unknown format type");
@@ -1210,6 +1400,10 @@ inline const char* SPC5_type_to_string(const SPC5_MATRIX_TYPE matType){
     {
         return "4rVc";
     }
+    case SPC5_MATRIX_TYPE::FORMAT_8rVc :
+    {
+        return "8rVc";
+    }
     default :
         {
             return "undefined";
@@ -1288,6 +1482,11 @@ inline std::vector<ThreadInterval<ValueType>> SPC5_split_omp(const SPC5Mat<Value
         return SPC5_4rVc_split_omp<ValueType>(mat);
         }
         break;
+    case SPC5_MATRIX_TYPE::FORMAT_8rVc :
+    {
+        return SPC5_8rVc_split_omp<ValueType>(mat);
+    }
+    break;
     default :
         {
             throw std::invalid_argument("SPC5_Spmv : Unknown format type");
@@ -1315,6 +1514,11 @@ inline void SPC5_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[], Va
         SPC5_4rVc_Spmv_omp<ValueType>(mat, x, y, threadsVecs);
         }
         break;
+    case SPC5_MATRIX_TYPE::FORMAT_8rVc :
+    {
+        SPC5_8rVc_Spmv_omp<ValueType>(mat, x, y, threadsVecs);
+    }
+    break;
     default :
         {
             throw std::invalid_argument("SPC5_Spmv : Unknown format type");
