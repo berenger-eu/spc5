@@ -15,18 +15,10 @@ num_rows = len(df)
 
 nb_mat_per_row=8
 
-use_v2=True
-
-if use_v2 :
-    labels=['scalar', '1rVc', '1rVc_v2', '2rVc', '2rVc_v2', '4rVc', '4rVc_v2']
-    res=['', '', '', '', '', '', '']
-    avgf64=[0,0,0,0,0,0,0]
-    avgf32=[0,0,0,0,0,0,0]
-else:
-    labels=['', '', '', '']
-    res=['', '', '', '']
-    avgf64=[0,0,0,0]
-    avgf32=[0,0,0,0]
+labels=['scalar', '1rVc', '2rVc', '4rVc', '8rVc']
+res=['', '', '', '', '']
+avgf64=[0,0,0,0,0]
+avgf32=[0,0,0,0,0]
 
 ticks=''
 
@@ -39,10 +31,7 @@ for i, row in df.iterrows():
     
     matrixnamewithtype = matrixname + ' (f64)' if types == 'double' else matrixname + ' (f32)'
 
-    if use_v2 :
-        values = row[['scalar', '1rVc', '1rVc_v2', '2rVc', '2rVc_v2', '4rVc', '4rVc_v2']].astype(float)
-    else:
-        values = row[['scalar', '1rVc', '2rVc', '4rVc']].astype(float)
+    values = row[['scalar', '1rVc', '2rVc', '4rVc', '8rVc']].astype(float)
         
     # print(matrixname)
     # print(str(values))

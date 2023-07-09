@@ -29,17 +29,12 @@ fig, axes = plt.subplots(nrows=num_rows_plot, ncols=num_cols_plot, figsize=(13, 
 
 subfig_used = [[False for _ in range(num_cols_plot)] for _ in range(num_rows_plot)]
 
-use_v2=False
-
 # Iterate over each row in the DataFrame
 for i, row in df.iterrows():
     # Get the data for the current row
     matrixname = row['matrixname']
     types = row['type']
-    if use_v2 :
-        values = row[['scalar', '1rVc', '1rVc_v2', '2rVc', '2rVc_v2', '4rVc', '4rVc_v2']].astype(float)
-    else:
-        values = row[['scalar', '1rVc', '2rVc', '4rVc']].astype(float)
+    values = row[['scalar', '1rVc', '2rVc', '4rVc', '8rVc']].astype(float)
 
     print(matrixname)
     print(str(values))
@@ -88,23 +83,13 @@ for i, row in df.iterrows():
 for i, types in enumerate(['double','float']):
     break
     
-    if use_v2:
-        scalar=df[df['type'] == types]['scalar'].values.astype(float)
-        v1rVc=df[df['type'] == types]['1rVc'].values.astype(float)
-        v1rVc_v2=df[df['type'] == types]['1rVc_v2'].values.astype(float)
-        v2rVc=df[df['type'] == types]['2rVc'].values.astype(float)
-        v2rVc_v2=df[df['type'] == types]['2rVc_v2'].values.astype(float)
-        v4rVc=df[df['type'] == types]['4rVc'].values.astype(float)
-        v4rVc_v2=df[df['type'] == types]['4rVc_v2'].values.astype(float)
-        
-        values=[np.mean(scalar), np.mean(v1rVc), np.mean(v1rVc_v2), np.mean(v2rVc), np.mean(v2rVc_v2), np.mean(v4rVc), np.mean(v4rVc_v2)]
-    else:
-        scalar=df[df['type'] == types]['scalar'].values.astype(float)
-        v1rVc=df[df['type'] == types]['1rVc'].values.astype(float)
-        v2rVc=df[df['type'] == types]['2rVc'].values.astype(float)
-        v4rVc=df[df['type'] == types]['4rVc'].values.astype(float)
-        
-        values=[np.mean(scalar), np.mean(v1rVc), np.mean(v2rVc), np.mean(v4rVc)]
+    scalar=df[df['type'] == types]['scalar'].values.astype(float)
+    v1rVc=df[df['type'] == types]['1rVc'].values.astype(float)
+    v2rVc=df[df['type'] == types]['2rVc'].values.astype(float)
+    v4rVc=df[df['type'] == types]['4rVc'].values.astype(float)
+    v8rVc=df[df['type'] == types]['8rVc'].values.astype(float)
+    
+    values=[np.mean(scalar), np.mean(v1rVc), np.mean(v2rVc), np.mean(v4rVc), np.mean(v8rVc)]
     
     
     print('average ' + types)
