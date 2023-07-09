@@ -386,24 +386,32 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
         idxCurrentThread += 1;
     }
 
-#pragma omp parallel num_threads(nbThreads)
+    #pragma omp parallel num_threads(nbThreads)
     {
         const int idxThread = omp_get_thread_num();
-        intervals[idxThread].threadY.reset(new ValueType[intervals[idxThread].numberOfRows + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
+        const int startingRow = intervals[idxThread].startingRow;
+        const int numberOfRows = intervals[idxThread].numberOfRows;
+        const int startingRowBlock = startingRow/nbRowsPerBlock;
+        const int numberOfRowsBlock = (numberOfRows+nbRowsPerBlock-1)/nbRowsPerBlock;
+        const int lastRowBlock = (startingRowBlock + numberOfRowsBlock);
 
-        intervals[idxThread].threadRowsSize.reset(new int[intervals[idxThread].numberOfRows + 1]());
+        intervals[idxThread].threadY.reset(new ValueType[numberOfRows + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
+
+        intervals[idxThread].threadRowsSize.reset(new int[numberOfRows + 1]());
         memcpy(intervals[idxThread].threadRowsSize.get(),
-                mat.rowsSize.get()+intervals[idxThread].startingRow/nbRowsPerBlock,
-                sizeof(int)*(intervals[idxThread].numberOfRows/nbRowsPerBlock + 1));
+                mat.rowsSize.get()+startingRowBlock,
+                sizeof(int)*(numberOfRowsBlock + 1));
 
-        const int nbBlocks = mat.rowsSize[intervals[idxThread].startingRow/nbRowsPerBlock + intervals[idxThread].numberOfRows]
-                           - mat.rowsSize[intervals[idxThread].startingRow/nbRowsPerBlock];
+        const int nbBlocks = mat.rowsSize[lastRowBlock]
+                           - mat.rowsSize[startingRowBlock];
         const int maskSize = (sizeof(ValueType)==4?2:1);
 
-        intervals[idxThread].threadBlocksColumnIndexesWithMasks.reset(new unsigned char[nbBlocks*(4+maskSize*nbRowsPerBlock)]());
+        const int sizeOfOneBlock = (4+maskSize*nbRowsPerBlock);
+        const long int memSizeOfBlocks = nbBlocks*sizeOfOneBlock;
+        intervals[idxThread].threadBlocksColumnIndexesWithMasks.reset(new unsigned char[memSizeOfBlocks]());
         memcpy(intervals[idxThread].threadBlocksColumnIndexesWithMasks.get(),
-                mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[intervals[idxThread/nbRowsPerBlock].startingRow]*(4+maskSize*nbRowsPerBlock),
-                sizeof(unsigned char)*(nbBlocks*(4+maskSize*nbRowsPerBlock)));
+                mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[startingRowBlock]*sizeOfOneBlock,
+                memSizeOfBlocks);
 
         const int nbValues = (idxThread+1 != nbThreads ? intervals[idxThread+1].valuesOffset : idxVal)
                 - intervals[idxThread].valuesOffset;
@@ -682,18 +690,20 @@ inline void SPC5_2rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double 
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
     assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rVc);
     const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
+
+    #pragma omp parallel num_threads(numThreads)
     {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(double)*threadsVecs[omp_get_thread_num()].numberOfRows);
+        const int idxThread = omp_get_thread_num();
+        memset(threadsVecs[idxThread].threadY.get(), 0, sizeof(double)*threadsVecs[idxThread].numberOfRows);
 
-        core_SPC5_2rVc_Spmv_double(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                       threadsVecs[omp_get_thread_num()].threadRowsSize.get(),
-                                       threadsVecs[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.get(),
-                                       threadsVecs[omp_get_thread_num()].threadValues.get(),
-                                       x, threadsVecs[omp_get_thread_num()].threadY.get());
+        core_SPC5_2rVc_Spmv_double(threadsVecs[idxThread].numberOfRows,
+                                       threadsVecs[idxThread].threadRowsSize.get(),
+                                       threadsVecs[idxThread].threadBlocksColumnIndexesWithMasks.get(),
+                                       threadsVecs[idxThread].threadValues.get(),
+                                       x, threadsVecs[idxThread].threadY.get());
 
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                threadsVecs[omp_get_thread_num()].numberOfRows);
+        SPC5_opti_merge(&y[threadsVecs[idxThread].startingRow], threadsVecs[idxThread].threadY.get(),
+                threadsVecs[idxThread].numberOfRows);
     }
 }
 
