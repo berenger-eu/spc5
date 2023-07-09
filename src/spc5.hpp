@@ -333,12 +333,12 @@ struct ThreadInterval{
     int startingRow;
     int numberOfRows;
     std::unique_ptr<ValueType[]> threadY;
-#ifdef SPLIT_NUMA
+
     std::unique_ptr<ValueType[]> threadValues;
     std::unique_ptr<int[]> threadRowsSize;
     std::unique_ptr<int[]> threadValuesColumnIndexes;
     std::unique_ptr<unsigned char[]> threadBlocksColumnIndexesWithMasks;
-#endif
+
     int valuesOffset;
 };
 
@@ -389,7 +389,7 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
 #pragma omp parallel num_threads(nbThreads)
     {
         intervals[omp_get_thread_num()].threadY.reset(new ValueType[intervals[omp_get_thread_num()].numberOfRows + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
-#ifdef SPLIT_NUMA
+
         intervals[omp_get_thread_num()].threadRowsSize.reset(new int[intervals[omp_get_thread_num()].numberOfRows + 1]());
         memcpy(intervals[omp_get_thread_num()].threadRowsSize.get(),
                 mat.rowsSize.get()+intervals[omp_get_thread_num()].startingRow/nbRowsPerBlock,
@@ -411,7 +411,7 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
         memcpy(intervals[omp_get_thread_num()].threadValues.get(),
                 mat.values.get()+intervals[omp_get_thread_num()].valuesOffset,
                 sizeof(ValueType)*nbValues);
-#endif
+
     }
 
     return intervals;
@@ -548,7 +548,7 @@ inline std::vector<ThreadInterval<ValueType>> SPC5_1rVc_split_omp(const SPC5Mat<
 template <class ValueType>
 inline void SPC5_1rVc_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[],
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
-#ifdef SPLIT_NUMA
+
 template <>
 inline void SPC5_1rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
@@ -588,47 +588,7 @@ inline void SPC5_1rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[]
                 threadsVecs[omp_get_thread_num()].numberOfRows);
     }
 }
-#else
-template <>
-inline void SPC5_1rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
-                                   const std::vector<ThreadInterval<double>>& threadsVecs){
-    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_1rVc_WT);
-    const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
-    {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(double)*threadsVecs[omp_get_thread_num()].numberOfRows);
 
-        core_SPC5_1rVc_Spmv_double(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                       mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
-                                       mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*5,
-                                       mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
-                                       x, threadsVecs[omp_get_thread_num()].threadY.get());
-
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                threadsVecs[omp_get_thread_num()].numberOfRows);
-    }
-}
-
-template <>
-inline void SPC5_1rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
-                                  const std::vector<ThreadInterval<float>>& threadsVecs){
-    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_1rVc_WT);
-    const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
-    {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(float)*threadsVecs[omp_get_thread_num()].numberOfRows);
-
-        core_SPC5_1rVc_Spmv_float(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                       mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
-                                       mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*6,
-                                       mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
-                                       x, threadsVecs[omp_get_thread_num()].threadY.get());
-
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                threadsVecs[omp_get_thread_num()].numberOfRows);
-    }
-}
-#endif
 
 #endif
 
@@ -715,7 +675,7 @@ inline std::vector<ThreadInterval<ValueType>> SPC5_2rVc_split_omp(const SPC5Mat<
 template <class ValueType>
 inline void SPC5_2rVc_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[],
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
-#ifdef SPLIT_NUMA
+
 template <>
 inline void SPC5_2rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
@@ -755,47 +715,7 @@ inline void SPC5_2rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[]
                 threadsVecs[omp_get_thread_num()].numberOfRows);
     }
 }
-#else
-template <>
-inline void SPC5_2rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
-                                   const std::vector<ThreadInterval<double>>& threadsVecs){
-    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rVc);
-    const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
-    {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(double)*threadsVecs[omp_get_thread_num()].numberOfRows);
 
-        core_SPC5_2rVc_Spmv_double(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                       mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
-                                       mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*6,
-                                       mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
-                                       x, threadsVecs[omp_get_thread_num()].threadY.get());
-
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                threadsVecs[omp_get_thread_num()].numberOfRows);
-    }
-}
-
-template <>
-inline void SPC5_2rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
-                                  const std::vector<ThreadInterval<float>>& threadsVecs){
-    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_2rVc);
-    const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
-    {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(float)*threadsVecs[omp_get_thread_num()].numberOfRows);
-
-        core_SPC5_2rVc_Spmv_float(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                       mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
-                                       mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*8,
-                                       mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
-                                       x, threadsVecs[omp_get_thread_num()].threadY.get());
-
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                threadsVecs[omp_get_thread_num()].numberOfRows);
-    }
-}
-#endif
 
 #endif
 
@@ -881,7 +801,7 @@ inline std::vector<ThreadInterval<ValueType>> SPC5_4rVc_split_omp(const SPC5Mat<
 template <class ValueType>
 inline void SPC5_4rVc_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[],
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
-#ifdef SPLIT_NUMA
+
 template <>
 inline void SPC5_4rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                    const std::vector<ThreadInterval<double>>& threadsVecs){
@@ -921,47 +841,7 @@ inline void SPC5_4rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[]
                 threadsVecs[omp_get_thread_num()].numberOfRows);
     }
 }
-#else
-template <>
-inline void SPC5_4rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
-                                   const std::vector<ThreadInterval<double>>& threadsVecs){
-    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_4rVc);
-    const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
-    {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(double)*threadsVecs[omp_get_thread_num()].numberOfRows);
 
-        core_SPC5_4rVc_Spmv_double(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                       mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
-                                       mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*8,
-                                       mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
-                                       x, threadsVecs[omp_get_thread_num()].threadY.get());
-
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                threadsVecs[omp_get_thread_num()].numberOfRows);
-    }
-}
-
-template <>
-inline void SPC5_4rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
-                                  const std::vector<ThreadInterval<float>>& threadsVecs){
-    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_4rVc);
-    const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
-    {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(float)*threadsVecs[omp_get_thread_num()].numberOfRows);
-
-        core_SPC5_4rVc_Spmv_float(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                       mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
-                                       mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*12,
-                                       mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
-                                       x, threadsVecs[omp_get_thread_num()].threadY.get());
-
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                threadsVecs[omp_get_thread_num()].numberOfRows);
-    }
-}
-#endif
 
 #endif
 
@@ -1047,7 +927,7 @@ inline std::vector<ThreadInterval<ValueType>> SPC5_8rVc_split_omp(const SPC5Mat<
 template <class ValueType>
 inline void SPC5_8rVc_Spmv_omp(const SPC5Mat<ValueType>& mat, const ValueType x[], ValueType y[],
                                const std::vector<ThreadInterval<ValueType>>& threadsVecs);
-#ifdef SPLIT_NUMA
+
 template <>
 inline void SPC5_8rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
                                        const std::vector<ThreadInterval<double>>& threadsVecs){
@@ -1087,47 +967,6 @@ inline void SPC5_8rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[]
                         threadsVecs[omp_get_thread_num()].numberOfRows);
     }
 }
-#else
-template <>
-inline void SPC5_8rVc_Spmv_omp<double>(const SPC5Mat<double>& mat, const double x[], double y[],
-                                       const std::vector<ThreadInterval<double>>& threadsVecs){
-    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
-    const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
-    {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(double)*threadsVecs[omp_get_thread_num()].numberOfRows);
-
-        core_SPC5_8rVc_Spmv_double(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                   mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
-                                   mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*8,
-                                   mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
-                                   x, threadsVecs[omp_get_thread_num()].threadY.get());
-
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                        threadsVecs[omp_get_thread_num()].numberOfRows);
-    }
-}
-
-template <>
-inline void SPC5_8rVc_Spmv_omp<float>(const SPC5Mat<float>& mat, const float x[], float y[],
-                                      const std::vector<ThreadInterval<float>>& threadsVecs){
-    assert(mat.format == SPC5_MATRIX_TYPE::FORMAT_8rVc);
-    const int numThreads = int(threadsVecs.size());
-#pragma omp parallel num_threads(numThreads)
-    {
-        memset(threadsVecs[omp_get_thread_num()].threadY.get(), 0, sizeof(float)*threadsVecs[omp_get_thread_num()].numberOfRows);
-
-        core_SPC5_8rVc_Spmv_float(threadsVecs[omp_get_thread_num()].numberOfRows,
-                                  mat.rowsSize.get()+threadsVecs[omp_get_thread_num()].startingRow,
-                                  mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[threadsVecs[omp_get_thread_num()].startingRow]*12,
-                                  mat.values.get()+threadsVecs[omp_get_thread_num()].valuesOffset,
-                                  x, threadsVecs[omp_get_thread_num()].threadY.get());
-
-        SPC5_opti_merge(&y[threadsVecs[omp_get_thread_num()].startingRow], threadsVecs[omp_get_thread_num()].threadY.get(),
-                        threadsVecs[omp_get_thread_num()].numberOfRows);
-    }
-}
-#endif
 
 #endif
 

@@ -40,14 +40,6 @@ endif()
 
 #################################################
 
-option(SPLIT_NUMA "Set to true to split the arrays between threads" TRUE)
-message(STATUS "SPLIT_NUMA = ${SPLIT_NUMA}")
-if(SPLIT_NUMA)
-    add_definitions("-DSPLIT_NUMA")
-endif()
-
-#################################################
-
 include(FindOpenMP)
 message(STATUS "OPENMP_FOUND = ${OPENMP_FOUND}")
 if(OPENMP_FOUND)
