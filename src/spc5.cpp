@@ -6,6 +6,28 @@
 
 #include "spc5.hpp"
 
+extern "C" void SPC5_opti_merge_double(double dest[], const double src[], const int nbValues){
+    for(int idx = 0 ; idx < nbValues ; idx += svcntd()){
+        const svbool_t predicate = svwhilelt_b64_s32(idx, nbValues);
+        const svfloat64_t values = svld1(predicate, &src[idx]);
+        const svfloat64_t valuesdest = svld1(predicate, &dest[idx]);
+        const svfloat64_t res = svadd_z(predicate, values, valuesdest);
+        svst1_f64(predicate, &dest[idx], res);
+    }
+}
+
+extern "C" void SPC5_opti_merge_float(float dest[], const float src[], const int nbValues){
+    for(int idx = 0 ; idx < nbValues ; idx += svcntw()){
+        const svbool_t predicate = svwhilelt_b32_s32(idx, nbValues);
+        const svfloat32_t values = svld1(predicate, &src[idx]);
+        const svfloat32_t valuesdest = svld1(predicate, &dest[idx]);
+        const svfloat32_t res = svadd_z(predicate, values, valuesdest);
+        svst1_f32(predicate, &dest[idx], res);
+    }
+}
+
+
+
 //////////////////////////////////////////////////////////////////////////
 
 void core_SPC5_1rVc_Spmv_double(const long int nbRows, const int* rowSizes,

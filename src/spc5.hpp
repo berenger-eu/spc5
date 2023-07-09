@@ -52,7 +52,6 @@ struct SPC5Mat {
     std::unique_ptr<ValueType[]> values;  //< the values (of size numberOfNNZ)
     std::unique_ptr<int[]> rowsSize;//< the usual "rowsSize/rowptr" (of size numberOfRows+1)
     std::unique_ptr<int[]> valuesColumnIndexes;//< the colidx of each NNZ (of size numberOfNNZ)
-    std::unique_ptr<int[]> rowsSizeCpy;//< Copy of the usual "rowsSize/rowptr" (of size numberOfRows+1)
 
     // For the SPC5 format
     std::unique_ptr<unsigned char[]> blocksColumnIndexesWithMasks;// Specific for each storage
@@ -172,9 +171,6 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
     std::unique_ptr<ValueType[]> newValues(new ValueType[csr->numberOfNNZ]);
     int globalIdxValues = 0;
 
-    csr->rowsSizeCpy.reset(new int[csr->numberOfRows+1]);
-    memcpy(csr->rowsSizeCpy.get(), csr->rowsSize.get(), sizeof(int)*(csr->numberOfRows+1));
-
     int previousNbBlocks = 0;
     for(int idxRow = 0 ; idxRow < csr->numberOfRows ; idxRow += nbRowsPerBlock){
         int currentNbBlocks = 0;
@@ -223,7 +219,6 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
 
         csr->rowsSize[idxRow/nbRowsPerBlock] = previousNbBlocks;
         previousNbBlocks += currentNbBlocks;
-        assert(csr->rowsSizeCpy[std::min(idxRow+nbRowsPerBlock, csr->numberOfRows)]-csr->rowsSizeCpy[idxRow] == idxCptVal);
     }
 
     csr->numberOfBlocks = previousNbBlocks;
@@ -359,8 +354,8 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
     int idxVal = 0;
     for(int idxRow = 0 ; idxRow < mat.numberOfRows ; idxRow += nbRowsPerBlock){
         if(idxCurrentThread != nbThreads-1 && idxRow // not the last thread
-                && std::abs((double(idxCurrentThread+1)*blocksPerThreads)-mat.rowsSize[idxRow])
-                    < std::abs((double(idxCurrentThread+1)*blocksPerThreads)-mat.rowsSize[idxRow+1])){
+                && std::abs((double(idxCurrentThread+1)*blocksPerThreads)-mat.rowsSize[idxRow/nbRowsPerBlock])
+                    < std::abs((double(idxCurrentThread+1)*blocksPerThreads)-mat.rowsSize[idxRow/nbRowsPerBlock+1])){
             intervals[idxCurrentThread].numberOfRows = idxRow - intervals[idxCurrentThread].startingRow;
 
             idxCurrentThread += 1;
@@ -368,7 +363,7 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
             intervals[idxCurrentThread].valuesOffset = idxVal;
         }
 
-        for(int idxBlock = mat.rowsSize[idxRow]; idxBlock < mat.rowsSize[idxRow+1] ; ++idxBlock){
+        for(int idxBlock = mat.rowsSize[idxRow/nbRowsPerBlock]; idxBlock < mat.rowsSize[idxRow/nbRowsPerBlock+1] ; ++idxBlock){
             //const int idxCol = *(int*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock)];
             for(int idxRowBlock = 0 ; idxRowBlock < nbRowsPerBlock ; idxRowBlock += 1){
                 const typename SPC5Mat_Mask<ValueType>::type valMask = *(typename SPC5Mat_Mask<ValueType>::type*)&mat.blocksColumnIndexesWithMasks[idxBlock*(sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*nbRowsPerBlock) + sizeof(int)+sizeof(typename SPC5Mat_Mask<ValueType>::type)*(idxRowBlock)];
@@ -397,16 +392,16 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
 #ifdef SPLIT_NUMA
         intervals[omp_get_thread_num()].threadRowsSize.reset(new int[intervals[omp_get_thread_num()].numberOfRows + 1]());
         memcpy(intervals[omp_get_thread_num()].threadRowsSize.get(),
-                mat.rowsSize.get()+intervals[omp_get_thread_num()].startingRow,
-                sizeof(int)*(intervals[omp_get_thread_num()].numberOfRows + 1));
+                mat.rowsSize.get()+intervals[omp_get_thread_num()].startingRow/nbRowsPerBlock,
+                sizeof(int)*(intervals[omp_get_thread_num()].numberOfRows/nbRowsPerBlock + 1));
 
-        const int nbBlocks = mat.rowsSize[intervals[omp_get_thread_num()].startingRow + intervals[omp_get_thread_num()].numberOfRows]
-                           - mat.rowsSize[intervals[omp_get_thread_num()].startingRow];
+        const int nbBlocks = mat.rowsSize[intervals[omp_get_thread_num()].startingRow/nbRowsPerBlock + intervals[omp_get_thread_num()].numberOfRows]
+                           - mat.rowsSize[intervals[omp_get_thread_num()].startingRow/nbRowsPerBlock];
         const int maskSize = (sizeof(ValueType)==4?2:1);
 
         intervals[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.reset(new unsigned char[nbBlocks*(4+maskSize*nbRowsPerBlock)]());
         memcpy(intervals[omp_get_thread_num()].threadBlocksColumnIndexesWithMasks.get(),
-                mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[intervals[omp_get_thread_num()].startingRow]*(4+maskSize*nbRowsPerBlock),
+                mat.blocksColumnIndexesWithMasks.get()+mat.rowsSize[intervals[omp_get_thread_num()/nbRowsPerBlock].startingRow]*(4+maskSize*nbRowsPerBlock),
                 sizeof(unsigned char)*(nbBlocks*(4+maskSize*nbRowsPerBlock)));
 
         const int nbValues = (omp_get_thread_num()+1 != nbThreads ? intervals[omp_get_thread_num()+1].valuesOffset : idxVal)
@@ -426,18 +421,18 @@ inline std::vector<ThreadInterval<ValueType>> core_SPC5_rVc_threadsplit(const SP
 template <class ValueType>
 void SPC5_opti_merge(ValueType dest[], const ValueType src[], const int nbValues);
 
+
+extern "C" void SPC5_opti_merge_double(double dest[], const double src[], const int nbValues);
+extern "C" void SPC5_opti_merge_float(float dest[], const float src[], const int nbValues);
+
 template <>
 inline void SPC5_opti_merge<double>(double dest[], const double src[], const int nbValues){
-    for(int idxVal = 0 ; idxVal < nbValues ; idxVal += 1){
-        dest[idxVal] += src[idxVal];
-    }
+    SPC5_opti_merge_double(dest, src, nbValues);
 }
 
 template <>
 inline void SPC5_opti_merge<float>(float dest[], const float src[], const int nbValues){
-    for(int idxVal = 0 ; idxVal < nbValues ; idxVal += 1){
-        dest[idxVal] += src[idxVal];
-    }
+    SPC5_opti_merge_float(dest, src, nbValues);
 }
 
 
@@ -455,11 +450,6 @@ inline void CSR_to_SPC5_1rVc(SPC5Mat<ValueType>* csr){
 
     std::vector<unsigned char> blocks;
     blocks.reserve((sizeof(int)+sizeof(short))*csr->numberOfNNZ/ValPerVec<ValueType>::size);
-
-
-    csr->rowsSizeCpy.reset(new int[csr->numberOfRows+1]);
-    memcpy(csr->rowsSizeCpy.get(), csr->rowsSize.get(), sizeof(int)*(csr->numberOfRows+1));
-
 
     int previousNbBlocks = 0;
     for(int idxRow = 0 ; idxRow < csr->numberOfRows ; ++idxRow){
