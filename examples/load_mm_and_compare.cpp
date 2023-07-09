@@ -420,6 +420,35 @@ int main(int argc, char** argv){
     }
     std::unique_ptr<ValueType[]> y(new ValueType[nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
 
+
+#ifdef USE_MKL
+    {
+        memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));
+
+        std::cout << "Start MKL CSR: "<< std::endl;
+        dtimer timerConversion;
+        CsrMKL<ValueType> csrMkl = COO_to_CsrMKL<ValueType>(nbRows, nbCols, values.get(), nbValues);
+        timerConversion.stop();
+        std::cout << "Conversion in : " << timerConversion.getElapsed() << "s\n";
+        dtimer timer;
+
+        for(int idxLoop = 0 ; idxLoop < nbLoops ; ++idxLoop){
+            compute_CsrMKL<ValueType>(csrMkl, x.get(), y.get());
+        }
+
+        timer.stop();
+        std::cout << "-> Done in " << timer.getElapsed() << "s\n";
+        std::cout << "-> GFlops " << double(flops)/timer.getElapsed()/1e9 << "s\n";
+
+        // Our kernels accumulate the results
+        for(int idxX = 0 ; idxX < nbCols ; ++idxX){
+            y[idxX] *= nbLoops;
+        }
+
+        std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
+    }
+#endif
+
 #ifdef USE_ARMPL
     {
         memset(y.get(), 0, sizeof(ValueType)*(nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y));

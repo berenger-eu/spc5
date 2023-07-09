@@ -92,6 +92,48 @@ endif()
 
 #################################################
 
+option(USE_AVX512 "USE AVX512" FALSE)
+
+if( USE_AVX512 )
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")    
+        set(AVX512KNL_FLAGS "-xCOMMON-AVX512 -xMIC-AVX512")
+        set(AVX512SKL_FLAGS "-xCOMMON-AVX512 -xCORE-AVX512")
+        set(AVX512CNL_FLAGS "-xCOMMON-AVX512 -xCORE-AVX512")
+    else()
+        set(AVX512KNL_FLAGS "-mtune=native -march=native -mavx512f -mavx512pf -mavx512er -mavx512cd")
+        set(AVX512SKL_FLAGS "-mtune=native -march=native -mavx512f -mavx512cd -mavx512vl -mavx512bw -mavx512dq")
+        set(AVX512CNL_FLAGS "-mtune=native -march=native -mavx512f -mavx512cd -mavx512vl -mavx512bw -mavx512dq -mavx512vbmi  -mavx512ifma")
+    endif()
+
+    set(CPU "KNL" CACHE STRING "Target hardware")
+    set_property(CACHE CPU PROPERTY STRINGS KNL SKL CNL)
+    message(STATUS "CPU = ${CPU}")
+
+    if(CPU STREQUAL "KNL")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${AVX512KNL_FLAGS}")
+    elseif(CPU STREQUAL "SKL")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${AVX512SKL_FLAGS}")
+    elseif(CPU STREQUAL "CNL")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${AVX512CNL_FLAGS}")
+    else()
+        message(ERROR "unknown CPU type ${CPU}")
+    endif()
+
+    if(DEFINED ENV{MKLROOT})
+        set(MKL_FOUND TRUE)
+    else()
+        set(MKL_FOUND FALSE)
+    endif()
+    option(USE_MKL "Compile examples with MKL" ${MKL_FOUND})
+    message(STATUS "USE_MKL  = ${USE_MKL}")
+    if(DEFINED ENV{MKLROOT} AND USE_MKL)
+        include_directories("$ENV{MKLROOT}/include")
+        add_definitions("-DUSE_MKL")
+    endif()
+endif()    
+
+#################################################
+
 
 file(GLOB_RECURSE cpp_for_examples ${CMAKE_CURRENT_SOURCE_DIR}/examples/*.cpp)
 foreach(an_example ${cpp_for_examples})
@@ -103,5 +145,13 @@ foreach(an_example ${cpp_for_examples})
     if(USE_ARMPL)
         target_link_libraries(${execname} armpl)
     endif()
+    if(USE_MKL)
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")  
+            target_link_libraries(${execname} -Wl,--start-group $ENV{MKLROOT}/lib/intel64/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/intel64/libmkl_sequential.a $ENV{MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl)
+        else()
+            target_link_libraries(${execname} -Wl,--start-group $ENV{MKLROOT}/lib/intel64/libmkl_intel_lp64.a $ENV{MKLROOT}/lib/intel64/libmkl_sequential.a $ENV{MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl)
+        endif()
+    endif()
+
 endforeach()
 
