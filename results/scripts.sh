@@ -4,15 +4,8 @@
 echo "Proceed $1"
 csvfile=$(echo $(basename $1).csv)
 
-use_v2=true
-
-if $use_v2 ; then
-    echo "matrixname,type,scalar,1rVc,1rVc_v2,2rVc,2rVc_v2,4rVc,4rVc_v2" > "$csvfile"
-    nb=7
-else
-    echo "matrixname,type,scalar,1rVc,2rVc,4rVc" > "$csvfile"
-    nb=4
-fi
+echo "matrixname,type,scalar,1rVc,2rVc,4rVc,8rVc" > "$csvfile"
+nb=5
 
 for fl in $1/res_*.txt ; do
     substring=${fl#*_}
