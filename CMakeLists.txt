@@ -73,9 +73,7 @@ endif()
 
 message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
 
-file(GLOB_RECURSE cpp_for_lib ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 file(GLOB_RECURSE hpp_for_lib ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp)
-add_library(spc5 STATIC ${cpp_for_lib} ${hpp_for_lib})
 
 #################################################
 
@@ -102,7 +100,6 @@ foreach(an_example ${cpp_for_examples})
     message(STATUS "Add example ${execname} for ${an_example}")
 
     add_executable(${execname} ${an_example})
-    target_link_libraries(${execname} spc5) 
     if(USE_ARMPL)
         target_link_libraries(${execname} armpl)
     endif()
