@@ -1,0 +1,43 @@
+-> number of rows = 2048
+-> number of columns = 2048
+-> number of values = 4194304
+-> number of values per row = 2048
+-> number loops to smooth the timing if > 1 =  16
+-> number of flops to do per spmv = 134217728
+Start usual CSR: 2048
+Conversion in : 0.0521812s
+-> Done in 0.340461s
+-> GFlops 0.394224s
+-> Esimated performance are 3.48736 for 2rVc
+Start usual 1rVc: 
+Conversion in : 0.888042s
+-> Done in 0.0482395s
+-> Number of blocks 524288( avg. 8 values per block)
+-> GFlops 2.78232s
+-> Max Difference in Accuracy 0
+Start usual 2rVc: 
+Conversion in : 0.872674s
+-> Done in 0.0400924s
+-> Number of blocks 262144( avg. 16 values per block)
+-> GFlops 3.34771s
+-> Max Difference in Accuracy 0
+Start usual 4rVc: 
+Conversion in : 0.865271s
+-> Done in 0.0434416s
+-> Number of blocks 131072( avg. 32 values per block)
+-> GFlops 3.08961s
+-> Max Difference in Accuracy 0
+Start usual 8rVc: 
+Conversion in : 0.868978s
+-> Done in 0.0428433s
+-> Number of blocks 65536( avg. 64 values per block)
+-> GFlops 3.13276s
+-> Max Difference in Accuracy 0
+===================================================
+Openmp is enabled with 48 threads per default
+Start openmp 1rVc: 
+-> Done in 0.0630678s
+-> Number of blocks 524288( avg. 8 values per block)
+-> GFlops 2.12815s
+-> Max Difference in Accuracy 0
+Start openmp 2rVc: 
