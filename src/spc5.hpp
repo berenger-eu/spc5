@@ -223,7 +223,7 @@ inline void core_CSR_to_SPC5_rVc(SPC5Mat<ValueType>* csr){
 
     csr->numberOfBlocks = previousNbBlocks;
     csr->values = std::move(newValues);
-    csr->rowsSize[((csr->numberOfRows-1)/nbRowsPerBlock)+1] = previousNbBlocks;
+    csr->rowsSize[(csr->numberOfRows+nbRowsPerBlock-1)/nbRowsPerBlock] = previousNbBlocks;
     csr->blocksColumnIndexesWithMasks = (ToUniquePtr(blocks));
 }
 
@@ -1494,7 +1494,7 @@ void core_SPC5_2rVc_Spmv_double(const long int nbRows, const int* rowSizes,
     const svuint64_t maskFilter = svld1_u64(true_vec, maskFilterValues);
 
     for (int idxRow = 0; idxRow < nbRows; idxRow += 2) {
-            const int idxRowBlock = idxRow/8;
+            const int idxRowBlock = idxRow/2;
 
             svfloat64_t sum_vec = zeros;
             svfloat64_t sum_vec_1 = zeros;
