@@ -10,7 +10,7 @@ cd /home/ri-bbramas/spc5-arm-sve/build/
 module load gcc/10.3.0
 
 make clean
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=OFF -DCPU=CNL -DUSE_MKL=ON
 make
 
 # Iterate over the matrices
