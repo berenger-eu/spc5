@@ -1,5 +1,5 @@
 #include "spc5.hpp"
-
+#include "clsimple.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 /// Timer class
@@ -455,29 +455,18 @@ void builddense(const int dim,
 #include <iostream>
 
 
-int main(int argc, char** argv){
-#ifdef USEFLOAT
-    using ValueType = float;
-#else
-    using ValueType = double;
-#endif
-#ifndef USEDENSE
-    if(argc != 2){
-        std::cerr << "[ERROR] You should pass a matrix market file as argument, exiting..." << std::endl;
-        return 1;
-    }
-
-    std::cout << "Will now open " << argv[1] << std::endl;
-#endif
+template <class ValueType>
+int test(const bool useDense, std::string filename, const int denseDim){
     std::unique_ptr<Ijv<ValueType>[]> values;
     int nbRows;
     int nbCols;
     int nbValues;
-#ifndef USEDENSE
-    loadMM<ValueType>(argv[1], &values, &nbRows, &nbCols, &nbValues);
-#else
-    builddense<ValueType>((argc == 2 ? atoi(argv[1]) : 2048), &values, &nbRows, &nbCols, &nbValues);
-#endif
+    if(useDense == false){
+        loadMM<ValueType>(filename, &values, &nbRows, &nbCols, &nbValues);
+    }
+    else{
+        builddense<ValueType>(denseDim, &values, &nbRows, &nbCols, &nbValues);
+    }
 
     std::cout << "-> number of rows = " << nbRows << std::endl;
     std::cout << "-> number of columns = " << nbCols << std::endl;
@@ -730,4 +719,50 @@ int main(int argc, char** argv){
     }
 #endif
     return 0;
+}
+
+
+int main(int argc, char** argv){
+    CLsimple args("SPC5", argc, argv);
+
+    args.addParameterNoArg({"help"}, "help"); // for "-help"
+
+    std::string matrixFile;
+    args.addParameter<std::string>({"mx"}, "use a matrix (MX format)", matrixFile, "", 1);
+
+    int dim;
+    args.addParameter<int>({"dense"}, "generate a dense matrix", dim, 2048, 2);
+
+    std::string realType;
+    args.addParameter<std::string>({"real"}, "precision", realType, "double", CLsimple::NotMandatory);
+
+    args.parse();
+
+    // Check if parse is invalid or if "-help" has been passed
+    if(!args.isValid() || args.hasKey("help")){
+        // Print the help
+        args.printHelp(std::cout);
+        return -1;
+    }
+
+    if(realType == "double"){
+        if(args.hasKey("dense")){
+            std::cout << "RUN dense with dim = " << dim << " real = double" << std::endl;
+            return test<double>(true, "", dim);
+        }
+        else{
+            std::cout << "RUN mx with matrix = " << matrixFile << " real = double" << std::endl;
+            return test<double>(false, matrixFile, -1);
+        }
+    }
+    else{
+        if(args.hasKey("dense")){
+            std::cout << "RUN dense with dim = " << dim << " real = float" << std::endl;
+            return test<float>(true, "", dim);
+        }
+        else{
+            std::cout << "RUN mx with matrix = " << matrixFile << " real = float" << std::endl;
+            return test<float>(false, matrixFile, -1);
+        }
+    }
 }

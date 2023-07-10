@@ -1500,33 +1500,33 @@ void core_SPC5_2rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             svfloat64_t sum_vec_1 = zeros;
 
             for (int idxBlock = rowSizes[idxRowBlock]; idxBlock < rowSizes[idxRowBlock+1]; ++idxBlock) {
-            const int idxCol = *((const int *)headers);
-            const unsigned char mask = headers[4];
-            const unsigned char mask_1 = headers[5];
+                const int idxCol = *((const int *)headers);
+                const unsigned char mask = headers[4];
+                const unsigned char mask_1 = headers[5];
 
-            const svuint64_t maskInVec = svdup_n_u64(mask);
-            const svbool_t mask_vec = svcmpne_n_u64(true_vec, svand_u64_z(true_vec, maskFilter, maskInVec), 0);
+                const svuint64_t maskInVec = svdup_n_u64(mask);
+                const svbool_t mask_vec = svcmpne_n_u64(true_vec, svand_u64_z(true_vec, maskFilter, maskInVec), 0);
 
-            const svuint64_t maskInVec_1 = svdup_n_u64(mask_1);
-            const svbool_t mask_vec_1 = svcmpne_n_u64(true_vec, svand_u64_z(true_vec, maskFilter, maskInVec_1), 0);
+                const svuint64_t maskInVec_1 = svdup_n_u64(mask_1);
+                const svbool_t mask_vec_1 = svcmpne_n_u64(true_vec, svand_u64_z(true_vec, maskFilter, maskInVec_1), 0);
 
-            const uint64_t increment = svcntp_b64(mask_vec, mask_vec);
-            const uint64_t increment_1 = svcntp_b64(mask_vec_1, mask_vec_1);
+                const uint64_t increment = svcntp_b64(mask_vec, mask_vec);
+                const uint64_t increment_1 = svcntp_b64(mask_vec_1, mask_vec_1);
 
-            const svfloat64_t xvec = svld1(true_vec, &x[idxCol]);
-            const svfloat64_t xvals = svcompact(mask_vec, xvec);
-            const svfloat64_t xvals_1 = svcompact(mask_vec_1, xvec);
+                const svfloat64_t xvec = svld1(true_vec, &x[idxCol]);
+                const svfloat64_t xvals = svcompact(mask_vec, xvec);
+                const svfloat64_t xvals_1 = svcompact(mask_vec_1, xvec);
 
-            const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values);
-            values += increment;
+                const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values);
+                values += increment;
 
-            const svfloat64_t block_1 = svld1(svwhilelt_b64_s32(0, increment_1), values);
-            values += increment_1;
+                const svfloat64_t block_1 = svld1(svwhilelt_b64_s32(0, increment_1), values);
+                values += increment_1;
 
-            sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
-            sum_vec_1 = svmla_m(true_vec, sum_vec_1, block_1, xvals_1);
+                sum_vec = svmla_m(true_vec, sum_vec, block, xvals);
+                sum_vec_1 = svmla_m(true_vec, sum_vec_1, block_1, xvals_1);
 
-            headers += 6;
+                headers += 6;
             }
 
             y[idxRow] += svaddv(true_vec, sum_vec);
