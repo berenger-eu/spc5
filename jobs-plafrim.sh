@@ -13,21 +13,10 @@ set -x
 cd /projets/schnaps/spc5-arm-sve/build/
 
 module load build/cmake/3.15.3 compiler/gcc/11.2.0 linalg/mkl/2022.0.2
-export OMP_NUM_THREADS=36
 
 make clean
-
-# Gen double version
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=OFF -DUSEDENSE=OFF -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
 make
-
-cp ./load_mm_and_compare ./load_mm_and_compare-double
-
-# Gen float version
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=ON -DUSEDENSE=OFF -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
-make
-
-cp ./load_mm_and_compare ./load_mm_and_compare-float
 
 # Iterate over the matrices
 
@@ -95,8 +84,8 @@ for url in "${urls[@]}"; do
             
         if [[ -n "$mtx_file" ]]; then
             echo "Compute : $mtx_file"
-            taskset -c 0 ./load_mm_and_compare-double "$mtx_file" >> res_"$filename"_double.txt
-            taskset -c 0 ./load_mm_and_compare-float "$mtx_file" >> res_"$filename"_float.txt
+            ./load_mm_and_compare --mx "$mtx_file" --real=double >> res_"$filename"_double.txt
+            ./load_mm_and_compare --mx "$mtx_file" --real=float >> res_"$filename"_float.txt
             # rm -r "$working_dir/$filename"
         else
             echo "No .mtx file found in $filename"
@@ -114,19 +103,6 @@ use_dense=true
 if $use_dense ; then
     echo ==== Dense ===
 
-    # Dense
-    # Gen double version
-    CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=OFF -DUSEDENSE=ON -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
-    make
-
-    cp ./load_mm_and_compare ./load_mm_and_compare-double
-
-    # Gen float version
-    CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=ON -DUSEDENSE=ON -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
-    make
-
-    cp ./load_mm_and_compare ./load_mm_and_compare-float
-
-    taskset -c 0 ./load_mm_and_compare-double >> res_dense_double.txt
-    taskset -c 0 ./load_mm_and_compare-float >> res_dense_float.txt
+    ./load_mm_and_compare --dense=2048 --real=double >> res_dense_double.txt
+    ./load_mm_and_compare --dense=2048 --real=float >> res_dense_float.txt
 fi

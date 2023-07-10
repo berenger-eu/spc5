@@ -17,27 +17,6 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 SET(SPC5_EXTRA_FLAG "-march=native -Wextra -Wnon-virtual-dtor -Wshadow -Wpointer-arith -Wcast-qual -Wconversion  -Wall -Wno-sign-conversion -pedantic -Woverloaded-virtual -Wpointer-arith -Wcast-qual -Wconversion -Wno-error" CACHE STRING "Additional flags"  )
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${SPC5_EXTRA_FLAG}")
 
-
-#################################################
-
-option(USEDENSE "Use dense or no" FALSE)
-message(STATUS "USEDENSE = ${USEDENSE}")
-if(USEDENSE)
-    add_definitions(-DUSEDENSE)
-else()
-
-endif()
-
-#################################################
-
-option(USEFLOAT "Use float" FALSE)
-message(STATUS "USEFLOAT = ${USEFLOAT}")
-if(USEFLOAT)
-    add_definitions(-DUSEFLOAT)
-else()
-
-endif()
-
 #################################################
 
 include(FindOpenMP)
