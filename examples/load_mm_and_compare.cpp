@@ -159,7 +159,104 @@ void compute_CsrARMPL( CsrARMPL<ValueType>& crs, ValueType *x , ValueType *y){
 }
 
 
-#endif
+#endif // AMRPL
+
+//////////////////////////////////////////////////////////////////////////////
+/// MKL CSR
+//////////////////////////////////////////////////////////////////////////////
+
+#ifdef USE_MKL
+
+#include <mkl.h>
+
+template <class ValueClass, typename DoubleFoncClass, typename SingleFoncClass, typename ... Args>
+inline typename std::enable_if<std::is_same<ValueClass, float>::value, void>::type
+CallDoubleOrSingle(DoubleFoncClass /*doubleFonc*/, SingleFoncClass singleFonc, Args ... args){
+    singleFonc(args...);
+}
+template <class ValueClass, typename DoubleFoncClass, typename SingleFoncClass, typename ... Args>
+inline typename std::enable_if<std::is_same<ValueClass, double>::value, void>::type
+CallDoubleOrSingle(DoubleFoncClass doubleFonc, SingleFoncClass /*singleFonc*/, Args ... args){
+    doubleFonc(args...);
+}
+
+
+template <class ValueType>
+struct CsrMKL{
+    MKL_INT m_row;  //< the dim of the matrix
+    MKL_INT m_col;  //< the dim of the matrix
+    MKL_INT nnz;//< the number of nnz (== ia[m])
+    ValueType *a;  //< the values (of size NNZ)
+    MKL_INT *ia;//< the usual rowptr (of size m+1)
+    MKL_INT *ja;//< the colidx of each NNZ (of size nnz)
+
+    CsrMKL(){
+            m_row = 0;
+            m_col = 0;
+            nnz = 0;
+            a = NULL;
+            ia = NULL;
+            ja= NULL;
+    }
+
+    ~CsrMKL(){
+            delete[] a;
+            delete[] ia;
+            delete[] ja;
+    }
+};
+
+/** See https://software.intel.com/fr-fr/node/520849#449CA855-CE5B-4061-B003-70D078CA5E05 */
+template <class ValueType>
+CsrMKL<ValueType> COO_to_CsrMKL(const int nbRows, const int nbCols,
+                                const Ijv<ValueType> values[], int nbValues){
+    CsrMKL<ValueType> csr;
+
+    MKL_INT job[6] = {1,//if job(1)=1, the matrix in the coordinate format is converted to the CRS format.
+        0,//If job(2)=0, zero-based indexing for the matrix in CRS format is used;
+        0,//If job(3)=0, zero-based indexing for the matrix in coordinate format is used;
+        0,
+        nbValues,//job(5)=nnz - sets number of the non-zero elements of the matrix A if job(1)=1.
+        0 //If job(6)=0, all arrays acsr, ja, ia are filled in for the output storage.
+    };
+    // Init crs
+    csr.m_row = nbRows;
+    csr.m_col = nbCols;
+    csr.nnz = nbValues;
+    csr.a = new ValueType[csr.nnz];
+    csr.ia = new MKL_INT[csr.m_row+1];
+    csr.ja = new MKL_INT[csr.nnz];
+    MKL_INT nnz = nbValues;
+    MKL_INT info;
+
+    std::unique_ptr<MKL_INT[]> rowind(new MKL_INT[nbValues]);
+    std::unique_ptr<MKL_INT[]> colind(new MKL_INT[nbValues]);
+    std::unique_ptr<ValueType[]> val(new ValueType[nbValues]);
+
+    for(int idxVal = 0 ; idxVal < nbValues ; ++idxVal){
+            rowind[idxVal] = values[idxVal].i;
+            colind[idxVal] = values[idxVal].j;
+            val[idxVal] = values[idxVal].v;
+    }
+
+    CallDoubleOrSingle<ValueType>(mkl_dcsrcoo, mkl_scsrcoo,job , &csr.m_row,
+                                  csr.a , csr.ja , csr.ia , &nnz ,
+                                  val.get(), rowind.get(), colind.get(), &info );
+
+    return csr;
+}
+
+/** See https://software.intel.com/fr-fr/node/520815#D840F0E5-E41A-4E91-94D2-FEB320F93E91 */
+
+template <class ValueType>
+void compute_CsrMKL( CsrMKL<ValueType>& crs, ValueType *x , ValueType *y){
+    char transa = 'N';
+    // void mkl_cspblas_dcsrgemv (const char *transa , const MKL_INT *m , const ValueType *a , const MKL_INT *ia , const MKL_INT *ja , const ValueType *x , ValueType *y );
+    CallDoubleOrSingle<ValueType>(mkl_cspblas_dcsrgemv, mkl_cspblas_scsrgemv, &transa, &crs.m_row , crs.a , crs.ia , crs.ja , x, y);
+}
+
+
+#endif // MKL
 
 
 template <class ValueType>

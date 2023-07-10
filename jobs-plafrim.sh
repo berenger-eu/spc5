@@ -12,19 +12,19 @@ set -x
 
 cd /projets/schnaps/spc5-arm-sve/build/
 
-module load build/cmake/3.15.3 compiler/gcc/11.2.0
+module load build/cmake/3.15.3 compiler/gcc/11.2.0 linalg/mkl/2022.0.2
 export OMP_NUM_THREADS=36
 
 make clean
 
 # Gen double version
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=OFF -DUSEDENSE=OFF -DUSE_AVX512=ON -DCPU=CNL
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=OFF -DUSEDENSE=OFF -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
 make
 
 cp ./load_mm_and_compare ./load_mm_and_compare-double
 
 # Gen float version
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=ON -DUSEDENSE=OFF -DUSE_AVX512=ON -DCPU=CNL
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=ON -DUSEDENSE=OFF -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
 make
 
 cp ./load_mm_and_compare ./load_mm_and_compare-float
@@ -116,13 +116,13 @@ if $use_dense ; then
 
     # Dense
     # Gen double version
-    CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=OFF -DUSEDENSE=ON -DUSE_AVX512=ON -DCPU=CNL
+    CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=OFF -DUSEDENSE=ON -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
     make
 
     cp ./load_mm_and_compare ./load_mm_and_compare-double
 
     # Gen float version
-    CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=ON -DUSEDENSE=ON -DUSE_AVX512=ON -DCPU=CNL
+    CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSEFLOAT=ON -DUSEDENSE=ON -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON
     make
 
     cp ./load_mm_and_compare ./load_mm_and_compare-float
