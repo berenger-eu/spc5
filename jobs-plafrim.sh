@@ -95,7 +95,7 @@ for url in "${urls[@]}"; do
             echo "Compute : $mtx_file"
             taskset -c 0 ./load_mm_and_compare-double "$mtx_file" >> res_"$filename"_double.txt
             taskset -c 0 ./load_mm_and_compare-float "$mtx_file" >> res_"$filename"_float.txt
-            rm -r "$working_dir/$filename"
+            # rm -r "$working_dir/$filename"
         else
             echo "No .mtx file found in $filename"
         fi
