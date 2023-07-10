@@ -1397,7 +1397,98 @@ extern "C" void SPC5_opti_merge_float(float dest[], const float src[], const int
     }
 }
 
+#ifdef MHSUM
 
+void hsum_stor_2(float* ptr, svfloat32_t v1, svfloat32_t v2){
+    int nb_values = svcntw();
+    svfloat32_t merge = svadd_z(svptrue_b32(), svuzp1(v1, v2), svuzp2(v1, v2));
+    while(nb_values != 2){
+            merge = svadd_z(svwhilelt_b32(0, nb_values), svuzp1(merge, merge), svuzp2(merge, merge));
+            nb_values /= 2;
+    }
+    svbool_t mask = svwhilelt_b32(0, 2);
+    svst1_f32(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
+}
+
+void hsum_stor_4(float* ptr, svfloat32_t v1, svfloat32_t v2, svfloat32_t v3, svfloat32_t v4){
+    int nb_values = svcntw();
+    svfloat32_t merge01 = svadd_z(svptrue_b32(), svuzp1(v1, v2), svuzp2(v1, v2));
+    svfloat32_t merge23 = svadd_z(svptrue_b32(), svuzp1(v3, v4), svuzp2(v3, v4));
+    svfloat32_t merge = svadd_z(svptrue_b32(), svuzp1(merge01, merge23), svuzp2(merge01, merge23));
+    while(nb_values != 4){
+            merge = svadd_z(svwhilelt_b32(0, nb_values), svuzp1(merge, merge), svuzp2(merge, merge));
+            nb_values /= 2;
+    }
+    svbool_t mask = svwhilelt_b32(0, 4);
+    svst1_f32(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
+}
+
+void hsum_stor_8(float* ptr, svfloat32_t v1, svfloat32_t v2, svfloat32_t v3, svfloat32_t v4,
+                 svfloat32_t v5, svfloat32_t v6, svfloat32_t v7, svfloat32_t v8){
+    int nb_values = svcntw();
+    svfloat32_t merge01 = svadd_z(svptrue_b32(), svuzp1(v1, v2), svuzp2(v1, v2));
+    svfloat32_t merge23 = svadd_z(svptrue_b32(), svuzp1(v3, v4), svuzp2(v3, v4));
+    svfloat32_t merge0123 = svadd_z(svptrue_b32(), svuzp1(merge01, merge23), svuzp2(merge01, merge23));
+
+    svfloat32_t merge45 = svadd_z(svptrue_b32(), svuzp1(v5, v6), svuzp2(v5, v6));
+    svfloat32_t merge67 = svadd_z(svptrue_b32(), svuzp1(v7, v8), svuzp2(v7, v8));
+    svfloat32_t merge4567 = svadd_z(svptrue_b32(), svuzp1(merge45, merge67), svuzp2(merge45, merge67));
+
+    svfloat32_t merge = svadd_z(svptrue_b32(), svuzp1(merge0123, merge4567), svuzp2(merge0123, merge4567));
+
+    while(nb_values != 8){
+            merge = svadd_z(svwhilelt_b32(0, nb_values), svuzp1(merge, merge), svuzp2(merge, merge));
+            nb_values /= 2;
+    }
+    svbool_t mask = svwhilelt_b32(0, 8);
+    svst1_f32(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
+}
+
+void hsum_stor_2(double* ptr, svfloat64_t v1, svfloat64_t v2){
+    int nb_values = svcntd();
+    svfloat64_t merge = svadd_z(svptrue_b64(), svuzp1(v1, v2), svuzp2(v1, v2));
+    while(nb_values != 2){
+            merge = svadd_z(svwhilelt_b64(0, nb_values), svuzp1(merge, merge), svuzp2(merge, merge));
+            nb_values /= 2;
+    }
+    svbool_t mask = svwhilelt_b64(0, 2);
+    svst1_f64(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
+}
+
+void hsum_stor_4(double* ptr, svfloat64_t v1, svfloat64_t v2, svfloat64_t v3, svfloat64_t v4){
+    int nb_values = svcntd();
+    svfloat64_t merge01 = svadd_z(svptrue_b64(), svuzp1(v1, v2), svuzp2(v1, v2));
+    svfloat64_t merge23 = svadd_z(svptrue_b64(), svuzp1(v3, v4), svuzp2(v3, v4));
+    svfloat64_t merge = svadd_z(svptrue_b64(), svuzp1(merge01, merge23), svuzp2(merge01, merge23));
+    while(nb_values != 4){
+            merge = svadd_z(svwhilelt_b64(0, nb_values), svuzp1(merge, merge), svuzp2(merge, merge));
+            nb_values /= 2;
+    }
+    svbool_t mask = svwhilelt_b64(0, 4);
+    svst1_f64(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
+}
+
+void hsum_stor_8(double* ptr, svfloat64_t v1, svfloat64_t v2, svfloat64_t v3, svfloat64_t v4,
+                 svfloat64_t v5, svfloat64_t v6, svfloat64_t v7, svfloat64_t v8){
+    int nb_values = svcntd();
+    svfloat64_t merge01 = svadd_z(svptrue_b64(), svuzp1(v1, v2), svuzp2(v1, v2));
+    svfloat64_t merge23 = svadd_z(svptrue_b64(), svuzp1(v3, v4), svuzp2(v3, v4));
+    svfloat64_t merge0123 = svadd_z(svptrue_b64(), svuzp1(merge01, merge23), svuzp2(merge01, merge23));
+
+    svfloat64_t merge45 = svadd_z(svptrue_b64(), svuzp1(v5, v6), svuzp2(v5, v6));
+    svfloat64_t merge67 = svadd_z(svptrue_b64(), svuzp1(v7, v8), svuzp2(v7, v8));
+    svfloat64_t merge4567 = svadd_z(svptrue_b64(), svuzp1(merge45, merge67), svuzp2(merge45, merge67));
+
+    svfloat64_t merge = svadd_z(svptrue_b64(), svuzp1(merge0123, merge4567), svuzp2(merge0123, merge4567));
+
+    while(nb_values != 8){
+            merge = svadd_z(svwhilelt_b64(0, nb_values), svuzp1(merge, merge), svuzp2(merge, merge));
+            nb_values /= 2;
+    }
+    svbool_t mask = svwhilelt_b64(0, 8);
+    svst1_f64(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
+}
+#endif MHSUM
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -1528,9 +1619,12 @@ void core_SPC5_2rVc_Spmv_double(const long int nbRows, const int* rowSizes,
 
                 headers += 6;
             }
-
+#ifdef MHSUM
+            hsum_stor_2(&y[idxRow], sum_vec, sum_vec_1);
+#else
             y[idxRow] += svaddv(true_vec, sum_vec);
             y[idxRow+1] += svaddv(true_vec, sum_vec_1);
+#endif
     }
 }
 
@@ -1584,9 +1678,12 @@ void core_SPC5_2rVc_Spmv_float(const long int nbRows, const int* rowSizes,
 
             headers += 8;
             }
-
+#ifdef MHSUM
+            hsum_stor_2(&y[idxRow], sum_vec, sum_vec_1);
+#else
             y[idxRow] += svaddv(true_vec, sum_vec);
             y[idxRow+1] += svaddv(true_vec, sum_vec_1);
+#endif
     }
 }
 
@@ -1660,11 +1757,14 @@ void core_SPC5_4rVc_Spmv_double(const long int nbRows, const int* rowSizes,
 
             headers += 8;
             }
-
+#ifdef MHSUM
+            hsum_stor_4(&y[idxRow], sum_vec, sum_vec_1,sum_vec_2, sum_vec_3);
+#else
             y[idxRow] += svaddv(true_vec, sum_vec);
             y[idxRow+1] += svaddv(true_vec, sum_vec_1);
             y[idxRow+2] += svaddv(true_vec, sum_vec_2);
             y[idxRow+3] += svaddv(true_vec, sum_vec_3);
+#endif
     }
 }
 
@@ -1741,11 +1841,14 @@ void core_SPC5_4rVc_Spmv_float(const long int nbRows, const int* rowSizes,
 
             headers += 12;
             }
-
+#ifdef MHSUM
+            hsum_stor_4(&y[idxRow], sum_vec, sum_vec_1,sum_vec_2, sum_vec_3);
+#else
             y[idxRow] += svaddv(true_vec, sum_vec);
             y[idxRow+1] += svaddv(true_vec, sum_vec_1);
             y[idxRow+2] += svaddv(true_vec, sum_vec_2);
             y[idxRow+3] += svaddv(true_vec, sum_vec_3);
+#endif
     }
 }
 
@@ -1864,7 +1967,10 @@ void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowSizes,
 
             headers += 12;
             }
-
+#ifdef MHSUM
+            hsum_stor_8(&y[idxRow], sum_vec, sum_vec_1,sum_vec_2, sum_vec_3,
+                        sum_vec_4, sum_vec_5, sum_vec_6, sum_vec_7);
+#else
             y[idxRow] += svaddv(true_vec, sum_vec);
             y[idxRow+1] += svaddv(true_vec, sum_vec_1);
             y[idxRow+2] += svaddv(true_vec, sum_vec_2);
@@ -1873,6 +1979,7 @@ void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             y[idxRow+5] += svaddv(true_vec, sum_vec_5);
             y[idxRow+6] += svaddv(true_vec, sum_vec_6);
             y[idxRow+7] += svaddv(true_vec, sum_vec_7);
+#endif
     }
 }
 
@@ -1993,7 +2100,10 @@ void core_SPC5_8rVc_Spmv_float(const long int nbRows, const int* rowSizes,
 
             headers += 20;
             }
-
+#ifdef MHSUM
+            hsum_stor_8(&y[idxRow], sum_vec, sum_vec_1,sum_vec_2, sum_vec_3,
+                        sum_vec_4, sum_vec_5, sum_vec_6, sum_vec_7);
+#else
             y[idxRow] += svaddv(true_vec, sum_vec);
             y[idxRow+1] += svaddv(true_vec, sum_vec_1);
             y[idxRow+2] += svaddv(true_vec, sum_vec_2);
@@ -2002,6 +2112,7 @@ void core_SPC5_8rVc_Spmv_float(const long int nbRows, const int* rowSizes,
             y[idxRow+5] += svaddv(true_vec, sum_vec_5);
             y[idxRow+6] += svaddv(true_vec, sum_vec_6);
             y[idxRow+7] += svaddv(true_vec, sum_vec_7);
+#endif
     }
 }
 

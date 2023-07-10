@@ -36,6 +36,15 @@ file(GLOB_RECURSE hpp_for_lib ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp)
 
 
 #################################################
+option(MHSUM "Use multi sum by hand" FALSE)
+message(STATUS "MHSUM = ${MHSUM}")
+if(MHSUM)
+    add_definitions(-DMHSUM)
+else()
+
+endif()
+
+#################################################
 
 option(USE_AVX512 "USE AVX512" FALSE)
 
