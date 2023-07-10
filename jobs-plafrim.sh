@@ -5,6 +5,7 @@
 #SBATCH --exclusive
 #SBATCH -C "bora&intel&cascadelake"
 #SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task 36
 
 
 set -x
@@ -12,6 +13,7 @@ set -x
 cd /projets/schnaps/spc5-arm-sve/build/
 
 module load build/cmake/3.15.3 compiler/gcc/11.2.0
+export OMP_NUM_THREADS=36
 
 make clean
 
