@@ -2140,7 +2140,135 @@ extern "C" void SPC5_opti_merge_float(float dest[], const float src[], const int
     }
 }
 
+void hsum_stor_2(float* ptr, __m512 v1, __m512 v2){
+    const __m256 low_x0123 = _mm512_castps512_ps256(v1);
+    const __m256 high_x4567 = _mm512_extractf32x8_ps(v1, 1);
 
+    const __m256 low_y0123 = _mm512_castps512_ps256(v2);
+    const __m256 high_y4567 = _mm512_extractf32x8_ps(v2, 1);
+
+    const __m256 sumd_x01234567 = _mm256_add_ps(low_x0123, high_x4567);
+    const __m256 sumd_y01234567 = _mm256_add_ps(low_y0123, high_y4567);
+
+    const __m128 valupper_x0123 = _mm256_extractf128_ps(sumd_x01234567, 1);
+    const __m128 rest_x4567 = _mm256_castps256_ps128(sumd_x01234567);
+
+    const __m128 valupper_y0123 = _mm256_extractf128_ps(sumd_y01234567, 1);
+    const __m128 rest1_y4567 = _mm256_castps256_ps128(sumd_y01234567);
+
+    const __m128 sumd_x0123_x4567 = _mm_add_ps(valupper_x0123, rest_x4567);
+    const __m128 sumd_y0123_y4567 = _mm_add_ps(valupper_y0123, rest1_y4567);
+
+    const __m128 final = _mm_hadd_ps(sumd_x0123_x4567, sumd_y0123_y4567);
+    const __m128 final2 = _mm_hadd_ps(final, final);
+    _mm_storel_pi((__m64*)ptr, _mm_add_ps(_mm_loadl_pi(_mm_setzero_ps(), (__m64*)ptr),final2));
+}
+
+void hsum_stor_4(float* ptr, __m512 v1, __m512 v2, __m512 v3, __m512 v4){
+    const __m256 low_x0123 = _mm512_castps512_ps256(v1);
+    const __m256 high_x4567 = _mm512_extractf32x8_ps(v1, 1);
+
+    const __m256 low_y0123 = _mm512_castps512_ps256(v2);
+    const __m256 high_y4567 = _mm512_extractf32x8_ps(v2, 1);
+
+    const __m256 sumd_x01234567 = _mm256_add_ps(low_x0123, high_x4567);
+    const __m256 sumd_y01234567 = _mm256_add_ps(low_y0123, high_y4567);
+
+    const __m256 low_z0123 = _mm512_castps512_ps256(v3);
+    const __m256 high_z4567 = _mm512_extractf32x8_ps(v3, 1);
+
+    const __m256 low_w0123 = _mm512_castps512_ps256(v4);
+    const __m256 high_w4567 = _mm512_extractf32x8_ps(v4, 1);
+
+    const __m256 sumd_z01234567 = _mm256_add_ps(low_z0123, high_z4567);
+    const __m256 sumd_w01234567 = _mm256_add_ps(low_w0123, high_w4567);
+
+    const __m256 merge_x01234567_y01234567 = _mm256_hadd_ps (sumd_x01234567, sumd_y01234567);
+    const __m256 merge_z01234567_w01234567 = _mm256_hadd_ps (sumd_z01234567, sumd_w01234567);
+
+    const __m256 merge_x_y_z_w = _mm256_hadd_ps (merge_x01234567_y01234567, merge_z01234567_w01234567);
+
+    const __m128 merge_z_w = _mm256_extractf128_ps(merge_x_y_z_w, 1);
+    const __m128 merge_x_y = _mm256_castps256_ps128(merge_x_y_z_w);
+
+    const __m128 final = _mm_add_ps(merge_x_y, merge_z_w);
+    _mm_storeu_ps(ptr,  _mm_add_ps(_mm_loadu_ps(ptr),final));
+}
+
+void hsum_stor_8(float* ptr, __m512 v1, __m512 v2, __m512 v3, __m512 v4,
+                 __m512 v5, __m512 v6, __m512 v7, __m512 v8){
+    hsum_stor_4(ptr, v1, v2, v3, v4);
+    hsum_stor_4(&ptr[4], v5, v6, v7, v8);
+}
+
+void hsum_stor_2(double* ptr, __m512d v1, __m512d v2){
+    const __m256d low_v1 = _mm512_castpd512_pd256(v1);
+    const __m256d high_v1 = _mm512_extractf64x4_pd(v1, 1);
+
+    const __m256d low_v2 = _mm512_castpd512_pd256(v2);
+    const __m256d high_v2 = _mm512_extractf64x4_pd(v2, 1);
+
+    const __m256d sumd0 = _mm256_add_pd(low_v1, high_v1);
+    const __m256d sumd1 = _mm256_add_pd(low_v2, high_v2);
+
+    const __m256d merge = _mm256_hadd_pd (sumd0, sumd1);
+
+    const __m128d valupper0 = _mm256_extractf128_pd(merge, 1);
+    const __m128d rest0 = _mm256_castpd256_pd128(merge);
+
+    const __m128d sum = _mm_add_pd(valupper0, rest0);
+
+    _mm_storeu_pd(ptr, _mm_add_pd(_mm_loadu_pd(ptr), sum));
+}
+
+void hsum_stor_4(double* ptr, __m512d v1, __m512d v2, __m512d v3, __m512d v4){
+    const __m256d low_v1 = _mm512_castpd512_pd256(v1);
+    const __m256d high_v1 = _mm512_extractf64x4_pd(v1, 1);
+
+    const __m256d low_v2 = _mm512_castpd512_pd256(v2);
+    const __m256d high_v2 = _mm512_extractf64x4_pd(v2, 1);
+
+    const __m256d low_v3 = _mm512_castpd512_pd256(v3);
+    const __m256d high_v3 = _mm512_extractf64x4_pd(v3, 1);
+
+    const __m256d low_v4 = _mm512_castpd512_pd256(v4);
+    const __m256d high_v4 = _mm512_extractf64x4_pd(v4, 1);
+
+    const __m256d sumd0 = _mm256_add_pd(low_v1, high_v1);
+    const __m256d sumd1 = _mm256_add_pd(low_v2, high_v2);
+    const __m256d sumd2 = _mm256_add_pd(low_v3, high_v3);
+    const __m256d sumd3 = _mm256_add_pd(low_v4, high_v4);
+
+    const __m128d valupper0 = _mm256_extractf128_pd(sumd0, 1);
+    const __m128d rest0 = _mm256_castpd256_pd128(sumd0);
+
+    const __m128d valupper1 = _mm256_extractf128_pd(sumd1, 1);
+    const __m128d rest1 = _mm256_castpd256_pd128(sumd1);
+
+    const __m128d valupper2 = _mm256_extractf128_pd(sumd2, 1);
+    const __m128d rest2 = _mm256_castpd256_pd128(sumd2);
+
+    const __m128d valupper3 = _mm256_extractf128_pd(sumd3, 1);
+    const __m128d rest3 = _mm256_castpd256_pd128(sumd3);
+
+    const __m256d sumd02 = _mm256_insertf128_pd(_mm256_castpd128_pd256(valupper0),valupper2,1);
+    const __m256d sumd02bis = _mm256_insertf128_pd(_mm256_castpd128_pd256(rest0),rest2,1);
+
+    const __m256d sumd13 = _mm256_insertf128_pd(_mm256_castpd128_pd256(valupper1),valupper3,1);
+    const __m256d sumd13bis = _mm256_insertf128_pd(_mm256_castpd128_pd256(rest1),rest3,1);
+
+    const __m256d sumd0202bis = _mm256_add_pd(sumd02, sumd02bis);
+    const __m256d sumd1313bis = _mm256_add_pd(sumd13, sumd13bis);
+
+    const __m256d merge = _mm256_hadd_pd (sumd0202bis, sumd1313bis);
+    _mm256_storeu_pd(ptr, _mm256_add_pd(_mm256_loadu_pd(ptr), merge));
+}
+
+void hsum_stor_8(double* ptr, __m512d v1, __m512d v2, __m512d v3, __m512d v4,
+                 __m512d v5, __m512d v6, __m512d v7, __m512d v8){
+    hsum_stor_4(ptr, v1, v2, v3, v4);
+    hsum_stor_4(&ptr[4], v5, v6, v7, v8);
+}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -2231,9 +2359,12 @@ void core_SPC5_2rVc_Spmv_double(const long int nbRows, const int* rowSizes,
 
                 headers += 6;
             }
-
+#ifdef MHSUM
+            hsum_stor_2(&y[idxRow], sum_vec, sum_vec_1);
+#else
             y[idxRow] += _mm512_reduce_add_pd(sum_vec);
             y[idxRow+1] += _mm512_reduce_add_pd(sum_vec_1);
+#endif
     }
 }
 
@@ -2267,9 +2398,12 @@ void core_SPC5_2rVc_Spmv_float(const long int nbRows, const int* rowSizes,
 
                 headers += 8;
             }
-
+#ifdef MHSUM
+            hsum_stor_2(&y[idxRow], sum_vec, sum_vec_1);
+#else
             y[idxRow] += _mm512_reduce_add_ps(sum_vec);
             y[idxRow+1] += _mm512_reduce_add_ps(sum_vec_1);
+#endif
     }
 }
 
@@ -2315,11 +2449,14 @@ void core_SPC5_4rVc_Spmv_double(const long int nbRows, const int* rowSizes,
 
                 headers += 8;
             }
-
+#ifdef MHSUM
+            hsum_stor_4(&y[idxRow], sum_vec, sum_vec_1,sum_vec_2, sum_vec_3);
+#else
             y[idxRow] += _mm512_reduce_add_pd(sum_vec);
             y[idxRow+1] += _mm512_reduce_add_pd(sum_vec_1);
             y[idxRow+2] += _mm512_reduce_add_pd(sum_vec_2);
             y[idxRow+3] += _mm512_reduce_add_pd(sum_vec_3);
+#endif
     }
 }
 
@@ -2366,11 +2503,14 @@ void core_SPC5_4rVc_Spmv_float(const long int nbRows, const int* rowSizes,
 
                 headers += 12;
             }
-
+#ifdef MHSUM
+            hsum_stor_4(&y[idxRow], sum_vec, sum_vec_1,sum_vec_2, sum_vec_3);
+#else
             y[idxRow] += _mm512_reduce_add_ps(sum_vec);
             y[idxRow+1] += _mm512_reduce_add_ps(sum_vec_1);
             y[idxRow+2] += _mm512_reduce_add_ps(sum_vec_2);
             y[idxRow+3] += _mm512_reduce_add_ps(sum_vec_3);
+#endif
     }
 }
 
@@ -2441,7 +2581,10 @@ void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowSizes,
 
                 headers += 12;
             }
-
+#ifdef MHSUM
+            hsum_stor_8(&y[idxRow], sum_vec, sum_vec_1,sum_vec_2, sum_vec_3,
+                        sum_vec_4, sum_vec_5, sum_vec_6, sum_vec_7);
+#else
             y[idxRow] += _mm512_reduce_add_pd(sum_vec);
             y[idxRow+1] += _mm512_reduce_add_pd(sum_vec_1);
             y[idxRow+2] += _mm512_reduce_add_pd(sum_vec_2);
@@ -2450,6 +2593,7 @@ void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             y[idxRow+5] += _mm512_reduce_add_pd(sum_vec_5);
             y[idxRow+6] += _mm512_reduce_add_pd(sum_vec_6);
             y[idxRow+7] += _mm512_reduce_add_pd(sum_vec_7);
+#endif
     }
 }
 
@@ -2520,7 +2664,10 @@ void core_SPC5_8rVc_Spmv_float(const long int nbRows, const int* rowSizes,
 
                 headers += 20;
             }
-
+#ifdef MHSUM
+            hsum_stor_8(&y[idxRow], sum_vec, sum_vec_1,sum_vec_2, sum_vec_3,
+                        sum_vec_4, sum_vec_5, sum_vec_6, sum_vec_7);
+#else
             y[idxRow] += _mm512_reduce_add_ps(sum_vec);
             y[idxRow+1] += _mm512_reduce_add_ps(sum_vec_1);
             y[idxRow+2] += _mm512_reduce_add_ps(sum_vec_2);
@@ -2529,6 +2676,7 @@ void core_SPC5_8rVc_Spmv_float(const long int nbRows, const int* rowSizes,
             y[idxRow+5] += _mm512_reduce_add_ps(sum_vec_5);
             y[idxRow+6] += _mm512_reduce_add_ps(sum_vec_6);
             y[idxRow+7] += _mm512_reduce_add_ps(sum_vec_7);
+#endif
     }
 }
 
