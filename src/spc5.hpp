@@ -1399,7 +1399,7 @@ extern "C" void SPC5_opti_merge_float(float dest[], const float src[], const int
 
 #ifdef MHSUM
 
-void hsum_stor_2(float* ptr, svfloat32_t v1, svfloat32_t v2){
+void hsum_stor_2(float* ptr, svfloat32_t& v1, svfloat32_t& v2){
     int nb_values = svcntw();
     svfloat32_t merge = svadd_z(svptrue_b32(), svuzp1(v1, v2), svuzp2(v1, v2));
     while(nb_values != 2){
@@ -1410,7 +1410,7 @@ void hsum_stor_2(float* ptr, svfloat32_t v1, svfloat32_t v2){
     svst1_f32(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
 }
 
-void hsum_stor_4(float* ptr, svfloat32_t v1, svfloat32_t v2, svfloat32_t v3, svfloat32_t v4){
+void hsum_stor_4(float* ptr, svfloat32_t& v1, svfloat32_t& v2, svfloat32_t& v3, svfloat32_t& v4){
     int nb_values = svcntw();
     svfloat32_t merge01 = svadd_z(svptrue_b32(), svuzp1(v1, v2), svuzp2(v1, v2));
     svfloat32_t merge23 = svadd_z(svptrue_b32(), svuzp1(v3, v4), svuzp2(v3, v4));
@@ -1423,8 +1423,8 @@ void hsum_stor_4(float* ptr, svfloat32_t v1, svfloat32_t v2, svfloat32_t v3, svf
     svst1_f32(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
 }
 
-void hsum_stor_8(float* ptr, svfloat32_t v1, svfloat32_t v2, svfloat32_t v3, svfloat32_t v4,
-                 svfloat32_t v5, svfloat32_t v6, svfloat32_t v7, svfloat32_t v8){
+void hsum_stor_8(float* ptr, svfloat32_t& v1, svfloat32_t& v2, svfloat32_t& v3, svfloat32_t& v4,
+                 svfloat32_t& v5, svfloat32_t& v6, svfloat32_t& v7, svfloat32_t& v8){
     int nb_values = svcntw();
     svfloat32_t merge01 = svadd_z(svptrue_b32(), svuzp1(v1, v2), svuzp2(v1, v2));
     svfloat32_t merge23 = svadd_z(svptrue_b32(), svuzp1(v3, v4), svuzp2(v3, v4));
@@ -1444,7 +1444,7 @@ void hsum_stor_8(float* ptr, svfloat32_t v1, svfloat32_t v2, svfloat32_t v3, svf
     svst1_f32(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
 }
 
-void hsum_stor_2(double* ptr, svfloat64_t v1, svfloat64_t v2){
+void hsum_stor_2(double* ptr, svfloat64_t& v1, svfloat64_t& v2){
     int nb_values = svcntd();
     svfloat64_t merge = svadd_z(svptrue_b64(), svuzp1(v1, v2), svuzp2(v1, v2));
     while(nb_values != 2){
@@ -1455,7 +1455,7 @@ void hsum_stor_2(double* ptr, svfloat64_t v1, svfloat64_t v2){
     svst1_f64(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
 }
 
-void hsum_stor_4(double* ptr, svfloat64_t v1, svfloat64_t v2, svfloat64_t v3, svfloat64_t v4){
+void hsum_stor_4(double* ptr, svfloat64_t& v1, svfloat64_t& v2, svfloat64_t& v3, svfloat64_t& v4){
     int nb_values = svcntd();
     svfloat64_t merge01 = svadd_z(svptrue_b64(), svuzp1(v1, v2), svuzp2(v1, v2));
     svfloat64_t merge23 = svadd_z(svptrue_b64(), svuzp1(v3, v4), svuzp2(v3, v4));
@@ -1468,8 +1468,8 @@ void hsum_stor_4(double* ptr, svfloat64_t v1, svfloat64_t v2, svfloat64_t v3, sv
     svst1_f64(mask, ptr, svadd_z(mask, svld1(mask, ptr), merge));
 }
 
-void hsum_stor_8(double* ptr, svfloat64_t v1, svfloat64_t v2, svfloat64_t v3, svfloat64_t v4,
-                 svfloat64_t v5, svfloat64_t v6, svfloat64_t v7, svfloat64_t v8){
+void hsum_stor_8(double* ptr, svfloat64_t& v1, svfloat64_t& v2, svfloat64_t& v3, svfloat64_t& v4,
+                 svfloat64_t& v5, svfloat64_t& v6, svfloat64_t& v7, svfloat64_t& v8){
     int nb_values = svcntd();
     svfloat64_t merge01 = svadd_z(svptrue_b64(), svuzp1(v1, v2), svuzp2(v1, v2));
     svfloat64_t merge23 = svadd_z(svptrue_b64(), svuzp1(v3, v4), svuzp2(v3, v4));
