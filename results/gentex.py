@@ -11,9 +11,9 @@ filename = sys.argv[1]
 df = pd.read_csv(filename)
 
 # Get the number of rows and calculate the number of subplots needed
-num_rows = len(df)
+num_rows = 0
 
-nb_mat_per_row=8
+nb_mat_per_row=12
 
 labels=['scalar', '1rVc', '2rVc', '4rVc', '8rVc']
 res=['', '', '', '', '']
@@ -24,41 +24,51 @@ ticks=''
 
 # Iterate over each row in the DataFrame
 for i, row in df.iterrows():
-    # Get the data for the current row
-    matrixname = row['matrixname']
-    matrixname=matrixname.replace('_', ' ')
-    types = row['type']
-    
-    matrixnamewithtype = matrixname + ' (f64)' if types == 'double' else matrixname + ' (f32)'
-
-    values = row[['scalar', '1rVc', '2rVc', '4rVc', '8rVc']].astype(float)
+    if row['hsum'] == "nohsum":
+        # print(str(i) + " " + str(row))
+        # Get the data for the current row
+        matrixname = row['matrixname']
+        matrixname=matrixname.replace('_', ' ')
+        types = row['type']
         
-    # print(matrixname)
-    # print(str(values))
-    # print(str(values.index))
-    
-    ticks += matrixnamewithtype if ticks == '' else ',' + matrixnamewithtype
-    
-    for idx,lb in enumerate(labels):
-        val=values[idx]
-        if types == 'double':
-            avgf64[idx] += val
-        else:
-            avgf32[idx] += val
-        if idx == 0:
-            res[idx] += f' ({matrixnamewithtype}, {val}) '
-        else:
-            speedup=values[idx]/values[0]
-            res[idx]+= f' ({matrixnamewithtype}, {val})[{speedup:.1f}] '
+        matrixnamewithtype = matrixname + ' (f64)' if types == 'double' else matrixname + ' (f32)'
+
+        values = row[['scalar', '1rVc', '2rVc', '4rVc', '8rVc']].astype(float)
             
-    if (i+1)%nb_mat_per_row == 0:
-        print('===================================')
-        print(ticks)
-        ticks=''
+        # print(matrixname)
+        # print(str(values))
+        # print(str(values.index))
+        
+        ticks += matrixnamewithtype if ticks == '' else ',' + matrixnamewithtype
+        
         for idx,lb in enumerate(labels):
-            print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res[idx] + ' };')
-            res[idx] = ''
-     
+            val=values[idx]
+            if types == 'double':
+                avgf64[idx] += val
+            else:
+                avgf32[idx] += val
+            if idx == 0:
+                res[idx] += f' ({matrixnamewithtype}, {val}) '
+            else:
+                speedup=values[idx]/values[0]
+                res[idx]+= f' ({matrixnamewithtype}, {val})[{speedup:.1f}] '
+                
+        if (num_rows+1)%nb_mat_per_row == 0:
+            print('===================================')
+            print(ticks)
+            ticks=''
+            for idx,lb in enumerate(labels):
+                print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res[idx] + ' };')
+                res[idx] = ''
+        num_rows = num_rows + 1
+
+print('===================================')
+print(ticks)
+ticks=''
+for idx,lb in enumerate(labels):
+    print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res[idx] + ' };')
+    res[idx] = ''
+
 #############################   
 ticks+= ',average (f64), average (f32)'
 for idx,lb in enumerate(labels):

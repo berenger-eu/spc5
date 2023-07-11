@@ -4,13 +4,14 @@
 echo "Proceed $1"
 csvfile=$(echo $(basename $1).csv)
 
-echo "matrixname,type,scalar,1rVc,2rVc,4rVc,8rVc" > "$csvfile"
-nb=5
+echo "matrixname,type,hsum,scalar,1rVc,2rVc,4rVc,8rVc,1rVcpar,2rVcpar,4rVcpar,8rVcpar" > "$csvfile"
+nb=9
 
 for fl in $1/res_*.txt ; do
     substring=${fl#*_}
-    matrix_name=$(basename ${substring%_*})
+    matrix_name=$(basename ${substring%_*_*})
     float_type=$(echo $substring | rev | cut -d'_' -f 1 | rev | cut -d'.' -f 1)
+    hsum=$(echo $substring | rev | cut -d'_' -f 2 | rev | cut -d'.' -f 1)
     
     echo "# fl $fl"
     echo " - matrix_name $matrix_name"
@@ -18,7 +19,7 @@ for fl in $1/res_*.txt ; do
 
     pattern="-> GFlops ([0-9]+\.[0-9]+)s"
 
-    csvline="$matrix_name,$float_type"
+    csvline="$matrix_name,$float_type,$hsum"
 
     count=0
 
