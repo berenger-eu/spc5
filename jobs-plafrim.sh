@@ -19,12 +19,12 @@ remove_matrix=false
 
 make clean
 
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=OFF -DCPU=CNL -DUSE_MKL=OFF -DMHSUM=OFF
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON -DMHSUM=OFF
 make
 exec_nohsum=./load_mm_and_compare_no_hsum
 mv ./load_mm_and_compare $exec_nohsum
 
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=OFF -DCPU=CNL -DUSE_MKL=OFF -DMHSUM=ON
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=ON -DCPU=CNL -DUSE_MKL=ON -DMHSUM=ON
 make
 exec_withhsum=./load_mm_and_compare_with_hsum
 mv ./load_mm_and_compare $exec_withhsum
