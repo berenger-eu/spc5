@@ -5,13 +5,24 @@
 
 set -x
 
+##############################################
 cd /home/ri-bbramas/spc5-arm-sve/build/
-
 module load gcc/10.3.0
+use_dense=true
+remove_matrix=true
+##############################################
 
 make clean
-CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=OFF -DCPU=CNL -DUSE_MKL=OFF
+
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=OFF -DCPU=CNL -DUSE_MKL=OFF -DMHSUM=OFF
 make
+exec_nohsum=./load_mm_and_compare_no_hsum
+mv ./load_mm_and_compare $exec_nohsum
+
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=OFF -DCPU=CNL -DUSE_MKL=OFF -DMHSUM=ON
+make
+exec_withhsum=./load_mm_and_compare_with_hsum
+mv ./load_mm_and_compare $exec_withhsum
 
 # Iterate over the matrices
 
@@ -79,9 +90,13 @@ for url in "${urls[@]}"; do
             
         if [[ -n "$mtx_file" ]]; then
             echo "Compute : $mtx_file"
-            ./load_mm_and_compare --mx "$mtx_file" --real=double >> res_"$filename"_double.txt
-            ./load_mm_and_compare --mx "$mtx_file" --real=float >> res_"$filename"_float.txt
-            rm -r "$working_dir/$filename"
+            $exec_withhsum --mx "$mtx_file" --real=double >> res_"$filename"_withhsum_double.txt
+            $exec_withhsum --mx "$mtx_file" --real=float >> res_"$filename"_withhsum_float.txt
+            $exec_nohsum --mx "$mtx_file" --real=double >> res_"$filename"_nohsum_double.txt
+            $exec_nohsum --mx "$mtx_file" --real=float >> res_"$filename"_nohsum_float.txt
+            if $remove_matrix ; then
+                rm -r "$working_dir/$filename"
+            fi
         else
             echo "No .mtx file found in $filename"
         fi
@@ -93,11 +108,11 @@ done
 
 #################################
 
-use_dense=true
-
 if $use_dense ; then
     echo ==== Dense ===
 
-    ./load_mm_and_compare --dense=2048 --real=double >> res_dense_double.txt
-    ./load_mm_and_compare --dense=2048 --real=float >> res_dense_float.txt
+    $exec_withhsum --dense=2048 --real=double >> res_dense_withhsum_double.txt
+    $exec_withhsum --dense=2048 --real=float >> res_dense_withhsum_float.txt
+    $exec_nohsum --dense=2048 --real=double >> res_dense_nohsum_double.txt
+    $exec_nohsum --dense=2048 --real=float >> res_dense_nohsum_float.txt
 fi
