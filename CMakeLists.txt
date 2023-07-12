@@ -43,6 +43,14 @@ if(MHSUM)
 else()
 
 endif()
+#################################################
+option(FACTOLOAD "Use multi sum by hand" FALSE)
+message(STATUS "FACTOLOAD = ${FACTOLOAD}")
+if(FACTOLOAD)
+    add_definitions(-DFACTOLOAD)
+else()
+
+endif()
 
 #################################################
 
