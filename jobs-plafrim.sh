@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH --job-name=spmv
-#SBATCH --time=24:00:00
+#SBATCH --time=5:00:00
 #SBATCH --exclusive
 #SBATCH -C "bora&intel&cascadelake"
 #SBATCH --ntasks-per-node=1
