@@ -1,6 +1,6 @@
 #!/bin/bash
 #PBS -q a64fx
-#PBS -l select=1:ncpus=48,place=scatter::exclhost
+#PBS -l select=1:ncpus=48,place=scatter:exclhost
 #PBS -l walltime=24:00:00
 
 set -x
