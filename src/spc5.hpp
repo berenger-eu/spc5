@@ -1938,6 +1938,16 @@ void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             const uint64_t increment_6 = svcntp_b64(mask_vec_6, mask_vec_6);
             const uint64_t increment_7 = svcntp_b64(mask_vec_7, mask_vec_7);
 #ifdef FACTOLOAD
+            const svfloat64_t xvec = svld1(true_vec, &x[idxCol]);
+            const svfloat64_t xvals = svcompact(mask_vec, xvec);
+            const svfloat64_t xvals_1 = svcompact(mask_vec_1, xvec);
+            const svfloat64_t xvals_2 = svcompact(mask_vec_2, xvec);
+            const svfloat64_t xvals_3 = svcompact(mask_vec_3, xvec);
+            const svfloat64_t xvals_4 = svcompact(mask_vec_4, xvec);
+            const svfloat64_t xvals_5 = svcompact(mask_vec_5, xvec);
+            const svfloat64_t xvals_6 = svcompact(mask_vec_6, xvec);
+            const svfloat64_t xvals_7 = svcompact(mask_vec_7, xvec);
+#else
             const svfloat64_t xvals = svcompact(mask_vec, svld1(mask_vec, &x[idxCol]));
             const svfloat64_t xvals_1 = svcompact(mask_vec_1, svld1(mask_vec_1, &x[idxCol]));
             const svfloat64_t xvals_2 = svcompact(mask_vec_2, svld1(mask_vec_2, &x[idxCol]));
@@ -1946,8 +1956,6 @@ void core_SPC5_8rVc_Spmv_double(const long int nbRows, const int* rowSizes,
             const svfloat64_t xvals_5 = svcompact(mask_vec_5, svld1(mask_vec_5, &x[idxCol]));
             const svfloat64_t xvals_6 = svcompact(mask_vec_6, svld1(mask_vec_6, &x[idxCol]));
             const svfloat64_t xvals_7 = svcompact(mask_vec_7, svld1(mask_vec_7, &x[idxCol]));
-#else
-
 #endif
             const svfloat64_t block = svld1(svwhilelt_b64_s32(0, increment), values);
             values += increment;
