@@ -43,14 +43,6 @@ if(MHSUM)
 else()
 
 endif()
-#################################################
-option(FACTOLOAD "Use multi sum by hand" FALSE)
-message(STATUS "FACTOLOAD = ${FACTOLOAD}")
-if(FACTOLOAD)
-    add_definitions(-DFACTOLOAD)
-else()
-
-endif()
 
 #################################################
 
@@ -122,7 +114,16 @@ else()
     if(DEFINED ENV{ARMPLROOT} AND USE_ARMPL)
         include_directories("$ENV{ARMPLROOT}/include")
         add_definitions("-DUSE_ARMPL")
-    endif()    
+    endif()   
+    
+    #################################################
+    option(FACTOLOAD "Use multi sum by hand" FALSE)
+    message(STATUS "FACTOLOAD = ${FACTOLOAD}")
+    if(FACTOLOAD)
+        add_definitions(-DFACTOLOAD)
+    else()
+
+    endif() 
 endif()    
 
 #################################################
