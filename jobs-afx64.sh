@@ -10,6 +10,8 @@ cd /home/ri-bbramas/spc5-arm-sve/build/
 module load gcc/10.3.0
 use_dense=true
 remove_matrix=true
+export OMP_PROC_BIND=true
+export OMP_PLACES=cores
 ##############################################
 
 make clean
@@ -26,7 +28,7 @@ mv ./load_mm_and_compare $exec_withhsum
 
 CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=OFF -DUSE_MKL=OFF -DMHSUM=OFF -DFACTOLOAD=ON
 make
-exec_nohsumfacto=./load_mm_and_compare_with_hsum_factoload
+exec_nohsumfacto=./load_mm_and_compare_no_hsum_factoload
 mv ./load_mm_and_compare $exec_nohsumfacto
 
 # Iterate over the matrices

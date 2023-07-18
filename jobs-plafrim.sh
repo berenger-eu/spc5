@@ -15,6 +15,8 @@ cd /projets/schnaps/spc5-arm-sve/build/
 module load build/cmake/3.15.3 compiler/gcc/11.2.0 linalg/mkl/2022.0.2
 use_dense=true
 remove_matrix=false
+export OMP_PROC_BIND=true
+export OMP_PLACES=cores
 ##############################################
 
 make clean

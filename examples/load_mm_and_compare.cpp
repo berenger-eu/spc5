@@ -484,7 +484,16 @@ int test(const bool useDense, std::string filename, const int denseDim){
         x[idxX] = ValueType(idxX%98);
     }
 
-    std::unique_ptr<ValueType[]> ycsr(new ValueType[nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
+    std::unique_ptr<ValueType[]> ycsr;
+    std::unique_ptr<ValueType[]> y;
+
+#ifdef _OPENMP
+// Will allow binding with openmp
+#pragma omp parallel num_threads(1)
+{
+#endif
+
+    ycsr.reset(new ValueType[nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
     {
         std::cout << "Start usual CSR: " << nbRows << std::endl;
         dtimer timerConversion;
@@ -504,7 +513,7 @@ int test(const bool useDense, std::string filename, const int denseDim){
         std::pair<SPC5_MATRIX_TYPE, double> esimation = SPC5_find_best<ValueType>(csr);
         std::cout << "-> Esimated performance are " << esimation.second << " for " << SPC5_type_to_string(esimation.first) << "\n";
     }
-    std::unique_ptr<ValueType[]> y(new ValueType[nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
+    y.reset(new ValueType[nbCols + SPC5_VEC_PADDING::SPC5_VEC_PADDING_Y]());
 
 
 #ifdef USE_MKL
@@ -643,6 +652,7 @@ int test(const bool useDense, std::string filename, const int denseDim){
         std::cout << "-> Max Difference in Accuracy " << ChechAccuracy(ycsr.get(), y.get(), nbCols) << "\n";
     }
 #ifdef _OPENMP
+}// End of num_threads(1)
     std::cout << "===================================================" << std::endl;
     std::cout << "Openmp is enabled with " << omp_get_max_threads() << " threads per default" << std::endl;
     {
