@@ -1,0 +1,63 @@
+RUN dense with dim = 2048 real = double
+-> number of rows = 2048
+-> number of columns = 2048
+-> number of values = 4194304
+-> number of values per row = 2048
+-> number loops to smooth the timing if > 1 =  16
+-> number of flops to do per spmv = 134217728
+Start usual CSR: 2048
+Conversion in : 0.0258092s
+-> Done in 0.109477s
+-> GFlops 1.22599s
+-> Esimated performance are 3.48736 for 2rVc
+Start MKL CSR: 
+Conversion in : 0.0557866s
+-> Done in 0.0573039s
+-> GFlops 2.34221s
+-> Max Difference in Accuracy 0
+Start usual 1rVc: 
+Conversion in : 0.189681s
+-> Done in 0.0362584s
+-> Number of blocks 524288( avg. 8 values per block)
+-> GFlops 3.7017s
+-> Max Difference in Accuracy 0
+Start usual 2rVc: 
+Conversion in : 0.204207s
+-> Done in 0.0324818s
+-> Number of blocks 262144( avg. 16 values per block)
+-> GFlops 4.13209s
+-> Max Difference in Accuracy 0
+Start usual 4rVc: 
+Conversion in : 0.203489s
+-> Done in 0.0320078s
+-> Number of blocks 131072( avg. 32 values per block)
+-> GFlops 4.19328s
+-> Max Difference in Accuracy 0
+Start usual 8rVc: 
+Conversion in : 0.19985s
+-> Done in 0.0300859s
+-> Number of blocks 65536( avg. 64 values per block)
+-> GFlops 4.46116s
+-> Max Difference in Accuracy 0
+===================================================
+Openmp is enabled with 36 threads per default
+Start openmp 1rVc: 
+-> Done in 0.00298533s
+-> Number of blocks 524288( avg. 8 values per block)
+-> GFlops 44.9592s
+-> Max Difference in Accuracy 0
+Start openmp 2rVc: 
+-> Done in 0.00216537s
+-> Number of blocks 262144( avg. 16 values per block)
+-> GFlops 61.9837s
+-> Max Difference in Accuracy 0
+Start openmp 4rVc: 
+-> Done in 0.00163693s
+-> Number of blocks 131072( avg. 32 values per block)
+-> GFlops 81.9935s
+-> Max Difference in Accuracy 0
+Start openmp 8rVc: 
+-> Done in 0.00148173s
+-> Number of blocks 65536( avg. 64 values per block)
+-> GFlops 90.5816s
+-> Max Difference in Accuracy 0
