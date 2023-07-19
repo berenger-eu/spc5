@@ -15,6 +15,7 @@ factoxtypes=['yes','no']
 nb_mat_per_row=12
 
 allvalues = {}
+allvaluespar = {}
 
 
 for factox in factoxtypes:
@@ -33,6 +34,8 @@ for factox in factoxtypes:
         res=['', '', '', '', '']
         avgf64=[0,0,0,0,0]
         avgf32=[0,0,0,0,0]
+        avgf64par=[0,0,0,0,0]
+        avgf32par=[0,0,0,0,0]
 
         ticks=''
 
@@ -48,15 +51,20 @@ for factox in factoxtypes:
                 matrixnamewithtype = matrixname + ' (f64)' if types == 'double' else matrixname + ' (f32)'
 
                 values = row[['scalar', '1rVc', '2rVc', '4rVc', '8rVc']].astype(float)
+                valuespar = row[['scalar', '1rVcpar', '2rVcpar', '4rVcpar', '8rVcpar']].astype(float)
                 
                 if not factox in allvalues:
                     allvalues[factox] = {}
+                    allvaluespar[factox] = {}
                 if not hsum in allvalues[factox]:
                     allvalues[factox][hsum] = {}
+                    allvaluespar[factox][hsum] = {}
                 if not matrixname in allvalues[factox][hsum]:
                     allvalues[factox][hsum][matrixname] = {}
+                    allvaluespar[factox][hsum][matrixname] = {}
                 allvalues[factox][hsum][matrixname][types] = values
-                    
+                allvaluespar[factox][hsum][matrixname][types] = valuespar
+                
                 # print(matrixname)
                 # print(str(values))
                 # print(str(values.index))
@@ -67,8 +75,10 @@ for factox in factoxtypes:
                     val=values[idx]
                     if types == 'double':
                         avgf64[idx] += val
+                        avgf64par[idx] += valuespar[idx]
                     else:
                         avgf32[idx] += val
+                        avgf32par[idx] += valuespar[idx]
                     if idx == 0:
                         res[idx] += f' ({matrixnamewithtype}, {val}) '
                     else:
@@ -95,6 +105,8 @@ for factox in factoxtypes:
             for idx,lb in enumerate(labels):
                 avgf64[idx] /= (num_rows)
                 avgf32[idx] /= (num_rows)
+                avgf64par[idx] /= (num_rows)
+                avgf32par[idx] /= (num_rows)
             #############################   
             ticks+= ',average (f64), average (f32)'
             for idx,lb in enumerate(labels):
@@ -125,12 +137,17 @@ for factox in factoxtypes:
             
             if not factox in allvalues:
                 allvalues[factox] = {}
+                allvaluespar[factox] = {}
             if not hsum in allvalues[factox]:
                 allvalues[factox][hsum] = {}
+                allvaluespar[factox][hsum] = {}
             if not 'average' in allvalues[factox][hsum]:
                 allvalues[factox][hsum]['average'] = {}
+                allvaluespar[factox][hsum]['average'] = {}
             allvalues[factox][hsum]['average']['double'] = avgf64
             allvalues[factox][hsum]['average']['float'] = avgf32
+            allvaluespar[factox][hsum]['average']['double'] = avgf64par
+            allvaluespar[factox][hsum]['average']['float'] = avgf32par
         
 ##############################################################
 print('#################################################')
@@ -156,6 +173,43 @@ for factox in factoxtypes:
                         
                     val0=allvalues[factox][hsum][matrixname]['float'][0]
                     val=allvalues[factox][hsum][matrixname]['float'][idx]
+                    if idx == 0:
+                        res += f' ({matrixname} (f32), {val}) '
+                    else:
+                        speedup=val/val0
+                        res+= f' ({matrixname} (f32), {val})[{speedup:.1f}] ' 
+                    if idx == 0:
+                        ticks += f'{matrixname} (f32)' if ticks == '' else f',{matrixname} (f32)'
+                
+                print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res + ' };')
+            
+            print('% ' + ticks)
+    
+        
+##############################################################
+print('#################################################')
+labels=['scalar', '1rVcpar', '2rVcpar', '4rVcpar', '8rVcpar']
+for factox in factoxtypes:
+    for hsum in hsumtypes:
+        if factox in allvaluespar and hsum in allvaluespar[factox]:
+            print(f'% factox {factox} hsum {hsum}')
+            ticks=''    
+            for idx,lb in enumerate(labels):
+                res=''
+                for idxmat,matrixname in enumerate(['CO','dense','nd6k','average']):
+                    
+                    val0=allvaluespar[factox][hsum][matrixname]['double'][0]
+                    val=allvaluespar[factox][hsum][matrixname]['double'][idx]
+                    if idx == 0:
+                        res += f' ({matrixname} (f64), {val}) '
+                    else:
+                        speedup=val/val0
+                        res+= f' ({matrixname} (f64), {val})[{speedup:.1f}] '
+                    if idx == 0:
+                        ticks += f'{matrixname} (f64)' if ticks == '' else f',{matrixname} (f64)'
+                        
+                    val0=allvaluespar[factox][hsum][matrixname]['float'][0]
+                    val=allvaluespar[factox][hsum][matrixname]['float'][idx]
                     if idx == 0:
                         res += f' ({matrixname} (f32), {val}) '
                     else:
