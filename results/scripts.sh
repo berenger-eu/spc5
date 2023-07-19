@@ -4,8 +4,16 @@
 echo "Proceed $1"
 csvfile=$(echo $(basename $1).csv)
 
-echo "matrixname,type,hsum,factox,scalar,1rVc,2rVc,4rVc,8rVc,1rVcpar,2rVcpar,4rVcpar,8rVcpar" > "$csvfile"
-nb=9
+
+if [[ $1 == *-avx* ]] ; then
+    echo "matrixname,type,hsum,factox,scalar,MKL,1rVc,2rVc,4rVc,8rVc,1rVcpar,2rVcpar,4rVcpar,8rVcpar" > "$csvfile"
+    nb=10
+elif [[ $1 == *-arm* ]] ; then
+    echo "matrixname,type,hsum,factox,scalar,1rVc,2rVc,4rVc,8rVc,1rVcpar,2rVcpar,4rVcpar,8rVcpar" > "$csvfile"
+    nb=9
+else
+    echo "Error bad folder name"
+fi
 
 for fl in $1/res_*.txt ; do
     substring=${fl#*_}
@@ -47,13 +55,13 @@ for fl in $1/res_*.txt ; do
         count=$((count + 1))
       fi
       
-      if ((count >= $nb)); then
+      if (( $count >= $nb )); then
         break
       fi
     done < "$fl"
     
-    if ((count != $nb)); then
-      echo "Error: Expected 4 matches, but found $count matches."
+    if (( $count != $nb )); then
+      echo "Error: Expected $nb matches, but found $count matches."
       rm $fl
     else
         echo " - $csvline"

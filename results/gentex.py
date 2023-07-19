@@ -17,6 +17,15 @@ nb_mat_per_row=12
 allvalues = {}
 allvaluespar = {}
 
+if 'MKL' in df.columns:
+    labels=['scalar', 'MKL', '1rVc', '2rVc', '4rVc', '8rVc']
+    colors=['0', 'mkl', '1', '2', '3', '4']
+else:
+    labels=['scalar', '1rVc', '2rVc', '4rVc', '8rVc']
+    colors=['0', '1', '2', '3', '4']
+
+labelspar=['scalar', '1rVcpar', '2rVcpar', '4rVcpar', '8rVcpar']
+colorspar=['0', '1', '2', '3', '4']
 
 for factox in factoxtypes:
     for hsum in hsumtypes:
@@ -30,12 +39,11 @@ for factox in factoxtypes:
         num_rows = 0
 
 
-        labels=['scalar', '1rVc', '2rVc', '4rVc', '8rVc']
-        res=['', '', '', '', '']
-        avgf64=[0,0,0,0,0]
-        avgf32=[0,0,0,0,0]
-        avgf64par=[0,0,0,0,0]
-        avgf32par=[0,0,0,0,0]
+        res=['', '', '', '', '', '']
+        avgf64=[0,0,0,0,0,0]
+        avgf32=[0,0,0,0,0,0]
+        avgf64par=[0,0,0,0,0,0]
+        avgf32par=[0,0,0,0,0,0]
 
         ticks=''
 
@@ -50,8 +58,8 @@ for factox in factoxtypes:
                 
                 matrixnamewithtype = matrixname + ' (f64)' if types == 'double' else matrixname + ' (f32)'
 
-                values = row[['scalar', '1rVc', '2rVc', '4rVc', '8rVc']].astype(float)
-                valuespar = row[['scalar', '1rVcpar', '2rVcpar', '4rVcpar', '8rVcpar']].astype(float)
+                values = row[labels].astype(float)
+                valuespar = row[labelspar].astype(float)
                 
                 if not factox in allvalues:
                     allvalues[factox] = {}
@@ -75,22 +83,27 @@ for factox in factoxtypes:
                     val=values[idx]
                     if types == 'double':
                         avgf64[idx] += val
-                        avgf64par[idx] += valuespar[idx]
                     else:
                         avgf32[idx] += val
-                        avgf32par[idx] += valuespar[idx]
                     if idx == 0:
                         res[idx] += f' ({matrixnamewithtype}, {val}) '
                     else:
                         speedup=values[idx]/values[0]
                         res[idx]+= f' ({matrixnamewithtype}, {val})[{speedup:.1f}] '
                         
+                for idx,lb in enumerate(labelspar):
+                    val=values[idx]
+                    if types == 'double':
+                        avgf64par[idx] += valuespar[idx]
+                    else:
+                        avgf32par[idx] += valuespar[idx]
+                        
                 if (num_rows+1)%nb_mat_per_row == 0:
                     print('% ===================================')
                     print('% ' + ticks)
                     ticks=''
                     for idx,lb in enumerate(labels):
-                        print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res[idx] + ' };')
+                        print('\\addplot[draw=color_' + colors[idx] +'!65!black, fill=color_' + colors[idx] +'!30!white] coordinates { ' + res[idx] + ' };')
                         res[idx] = ''
                 num_rows = num_rows + 1
 
@@ -99,7 +112,7 @@ for factox in factoxtypes:
             print('% ' + ticks)
             ticks=''
             for idx,lb in enumerate(labels):
-                print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res[idx] + ' };')
+                print('\\addplot[draw=color_' + colors[idx] +'!65!black, fill=color_' + colors[idx] +'!30!white] coordinates { ' + res[idx] + ' };')
                 res[idx] = ''
 
             for idx,lb in enumerate(labels):
@@ -131,7 +144,7 @@ for factox in factoxtypes:
             print('% ' + ticks)
             ticks=''
             for idx,lb in enumerate(labels):
-                print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res[idx] + ' };')
+                print('\\addplot[draw=color_' + colors[idx] +'!65!black, fill=color_' + colors[idx] +'!30!white] coordinates { ' + res[idx] + ' };')
                 res[idx] = ''
             
             
@@ -151,7 +164,6 @@ for factox in factoxtypes:
         
 ##############################################################
 print('#################################################')
-labels=['scalar', '1rVc', '2rVc', '4rVc', '8rVc']
 for factox in factoxtypes:
     for hsum in hsumtypes:
         if factox in allvalues and hsum in allvalues[factox]:
@@ -181,20 +193,19 @@ for factox in factoxtypes:
                     if idx == 0:
                         ticks += f'{matrixname} (f32)' if ticks == '' else f',{matrixname} (f32)'
                 
-                print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res + ' };')
+                print('\\addplot[draw=color_' + colors[idx] +'!65!black, fill=color_' + colors[idx] +'!30!white] coordinates { ' + res + ' };')
             
             print('% ' + ticks)
     
         
 ##############################################################
 print('#################################################')
-labels=['scalar', '1rVcpar', '2rVcpar', '4rVcpar', '8rVcpar']
 for factox in factoxtypes:
     for hsum in hsumtypes:
         if factox in allvaluespar and hsum in allvaluespar[factox]:
             print(f'% factox {factox} hsum {hsum}')
             ticks=''    
-            for idx,lb in enumerate(labels):
+            for idx,lb in enumerate(labelspar):
                 res=''
                 for idxmat,matrixname in enumerate(['CO','dense','nd6k','average']):
                     
@@ -218,7 +229,7 @@ for factox in factoxtypes:
                     if idx == 0:
                         ticks += f'{matrixname} (f32)' if ticks == '' else f',{matrixname} (f32)'
                 
-                print('\\addplot[draw=color_' + str(idx) +'!65!black, fill=color_' + str(idx) +'!30!white] coordinates { ' + res + ' };')
+                print('\\addplot[draw=color_' + colorspar[idx] +'!65!black, fill=color_' + colorspar[idx] +'!30!white] coordinates { ' + res + ' };')
             
             print('% ' + ticks)
     
