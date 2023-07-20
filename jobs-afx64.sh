@@ -31,6 +31,11 @@ make
 exec_nohsumfacto=./load_mm_and_compare_no_hsum_factoload
 mv ./load_mm_and_compare $exec_nohsumfacto
 
+CXX=g++ cmake .. -DCMAKE_BUILD_TYPE=RELEASE -DUSE_AVX512=OFF -DUSE_MKL=OFF -DMHSUM=ON -DFACTOLOAD=ON
+make
+exec_withhsumfacto=./load_mm_and_compare_no_hsum_factoload
+mv ./load_mm_and_compare $exec_withhsumfacto
+
 # Iterate over the matrices
 
 urls_normal=(
@@ -103,6 +108,8 @@ for url in "${urls[@]}"; do
             $exec_nohsum --mx "$mtx_file" --real=float >> res_"$filename"_nohsum_float.txt
             $exec_nohsumfacto --mx "$mtx_file" --real=double >> res_"$filename"_nohsum_facto_double.txt
             $exec_nohsumfacto --mx "$mtx_file" --real=float >> res_"$filename"_nohsum_facto_float.txt
+            $exec_withhsumfacto --mx "$mtx_file" --real=double >> res_"$filename"_withhsum_facto_double.txt
+            $exec_withhsumfacto --mx "$mtx_file" --real=float >> res_"$filename"_withhsum_facto_float.txt
             if $remove_matrix ; then
                 rm -r "$working_dir/$filename"
             fi
@@ -126,4 +133,6 @@ if $use_dense ; then
     $exec_nohsum --dense=2048 --real=float >> res_dense_nohsum_float.txt
     $exec_nohsumfacto --dense=2048 --real=double >> res_dense_nohsum_facto_double.txt
     $exec_nohsumfacto --dense=2048 --real=float >> res_dense_nohsum_facto_float.txt
+    $exec_withhsumfacto --dense=2048 --real=double >> res_dense_withhsum_facto_double.txt
+    $exec_withhsumfacto --dense=2048 --real=float >> res_dense_withhsum_facto_float.txt
 fi
