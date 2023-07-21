@@ -20,12 +20,14 @@ allvaluespar = {}
 if 'MKL' in df.columns:
     labels=['scalar', 'MKL', '1rVc', '2rVc', '4rVc', '8rVc']
     colors=['0', 'mkl', '1', '2', '3', '4']
+    labelsparref=2
 else:
     labels=['scalar', '1rVc', '2rVc', '4rVc', '8rVc']
     colors=['0', '1', '2', '3', '4']
+    labelsparref=1
 
-labelspar=['scalar', '1rVcpar', '2rVcpar', '4rVcpar', '8rVcpar']
-colorspar=['0', '1', '2', '3', '4']
+labelspar=['1rVcpar', '2rVcpar', '4rVcpar', '8rVcpar']
+colorspar=['1', '2', '3', '4']
 
 for factox in factoxtypes:
     for hsum in hsumtypes:
@@ -209,9 +211,9 @@ for factox in factoxtypes:
                 res=''
                 for idxmat,matrixname in enumerate(['CO','dense','nd6k','average']):
                     
-                    val0=allvaluespar[factox][hsum][matrixname]['double'][0]
+                    val0=allvalues[factox][hsum][matrixname]['double'][labelsparref+idx]
                     val=allvaluespar[factox][hsum][matrixname]['double'][idx]
-                    if idx == 0:
+                    if idx == None:
                         res += f' ({matrixname} (f64), {val}) '
                     else:
                         speedup=val/val0
@@ -219,9 +221,9 @@ for factox in factoxtypes:
                     if idx == 0:
                         ticks += f'{matrixname} (f64)' if ticks == '' else f',{matrixname} (f64)'
                         
-                    val0=allvaluespar[factox][hsum][matrixname]['float'][0]
+                    val0=allvalues[factox][hsum][matrixname]['float'][labelsparref+idx]
                     val=allvaluespar[factox][hsum][matrixname]['float'][idx]
-                    if idx == 0:
+                    if idx == None:
                         res += f' ({matrixname} (f32), {val}) '
                     else:
                         speedup=val/val0
