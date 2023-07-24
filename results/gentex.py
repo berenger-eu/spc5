@@ -198,7 +198,85 @@ for factox in factoxtypes:
                 print('\\addplot[draw=color_' + colors[idx] +'!65!black, fill=color_' + colors[idx] +'!30!white] coordinates { ' + res + ' };')
             
             print('% ' + ticks)
-    
+
+##############################################################
+print('#################################################')
+
+if 'MKL' in df.columns:
+    labelstex=['CSR', 'MKL', '$\\beta(1\,\\text{,VS})$', '$\\beta(2\,\\text{,VS})$', '$\\beta(4\,\\text{,VS})$', '$\\beta(8\,\\text{,VS})$']
+else:
+    labelstex=['CSR', '$\\beta(1\,\\text{,VS})$', '$\\beta(2\,\\text{,VS})$', '$\\beta(4\,\\text{,VS})$', '$\\beta(8\,\\text{,VS})$']
+
+def num2str(num, num_decimal_places):
+    return "{:.{}f}".format(num, num_decimal_places)
+
+header='\\begin{tabular}{|c|c|'
+header2=' & $x$ load / '
+header3=' & reduction '
+for idx,lb in enumerate(labels):
+    header+='c|c|'
+    header2+='& \multicolumn{2}{c|}{' + labelstex[idx] + '}'
+    header3+='& f64 & f32 '
+header+='}'
+header2+=' \\\\'
+header3+=' \\\\'
+
+print(header + ' \\hline')
+print(header2 + ' \cline{3-' + str(3 + len(labels)*2 - 1) + '}')
+print(header3 + ' \\hline')
+
+nbTypes=0
+factoxfirst=''
+hsumfirst=''
+for factox in factoxtypes:
+    for hsum in hsumtypes:
+        if factox in allvalues and hsum in allvalues[factox]:
+            nbTypes += 1
+            if factoxfirst == '':
+                factoxfirst=factox
+            if hsumfirst == '':
+                hsumfirst=hsum
+
+
+for idxmat,matrixname in enumerate(['CO','dense','nd6k','average']):
+    cpt=0
+    for factox in factoxtypes:
+        for hsum in hsumtypes:
+            if factox in allvalues and hsum in allvalues[factox] and matrixname in allvalues[factox][hsum]:
+                if cpt == 0:
+                    print('\\multirow{' + str(nbTypes) + '}{*}{' + matrixname + '}', end="")
+                cpt += 1
+                
+                lf = 'Yes' if factox == 'yes' else 'No'
+                hs = 'Yes' if hsum == 'yes' else 'No'
+                
+                print(f' & {lf}/{hs}', end="")
+                  
+                for idx,lb in enumerate(labels):
+                    val=allvalues[factox][hsum][matrixname]['double'][idx]
+                    if (factox == factoxfirst and hsum == hsumfirst) or (num2str(val,1) != num2str(allvalues[factoxfirst][hsumfirst][matrixname]['double'][idx],1)):
+                        val0=allvalues[factox][hsum][matrixname]['double'][0]
+                        if idx == 0:
+                            print(f' & {val:.1f}', end="")
+                        else:
+                            speedup=val/val0
+                            print(f' & {val:.1f} [x{speedup:.1f}] ', end="")
+                    else:
+                        print(' & ', end="")
+                        
+                    val=allvalues[factox][hsum][matrixname]['float'][idx]
+                    if (factox == factoxfirst and hsum == hsumfirst) or (num2str(val,1) != num2str(allvalues[factoxfirst][hsumfirst][matrixname]['float'][idx],1)):
+                        val0=allvalues[factox][hsum][matrixname]['float'][0]
+                        if idx == 0:
+                            print(f' & {val:.1f} ', end="")
+                        else:
+                            speedup=val/val0
+                            print(f' & {val:.1f} [x{speedup:.1f}] ', end="")
+                    else:
+                        print(' & ', end="")
+                print('\\\\')
+    if cpt != 0:
+        print('\\hline')
         
 ##############################################################
 print('#################################################')
