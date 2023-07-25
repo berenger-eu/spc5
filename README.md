@@ -83,5 +83,17 @@ Same for MKL.
 
 We strongly suggest users to have a look to the examples.
 
+### Other files
+- jobs-afx64.sh : batch job for the paper
+- jobs-plafrim.sh : batch job for the paper
 
+- results/gentex.py  : convert csv to figures for the paper
+- results/plot.py  : useless file
+- results/results-arm-7_stats.csv  : stats of the matrices used in the paper
+- results/results-arm-8  : all the output files for the paper & arm sve
+- results/results-arm-8.csv  : results for the paper & arm sve
+- results/results-avx-2  : all output files for the paper & avx512
+- results/results-avx-2.csv  : results for the paper & avx512
+- results/script_csv.sh : generate a csv from res files
+- results/script-stats.sh : generate a stats csv from res files
 
