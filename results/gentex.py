@@ -254,7 +254,7 @@ for idxmat,matrixname in enumerate(['CO','dense','nd6k','average']):
                   
                 for idx,lb in enumerate(labels):
                     val=allvalues[factox][hsum][matrixname]['double'][idx]
-                    if (factox == factoxfirst and hsum == hsumfirst) or (num2str(val,1) != num2str(allvalues[factoxfirst][hsumfirst][matrixname]['double'][idx],1)):
+                    if (factox == factoxfirst and hsum == hsumfirst) or (num2str(val/allvalues[factox][hsum][matrixname]['double'][0],1) != num2str(allvalues[factoxfirst][hsumfirst][matrixname]['double'][idx]/allvalues[factoxfirst][hsumfirst][matrixname]['double'][0],1)):
                         val0=allvalues[factox][hsum][matrixname]['double'][0]
                         if idx == 0:
                             print(f' & {val:.1f}', end="")
@@ -265,7 +265,7 @@ for idxmat,matrixname in enumerate(['CO','dense','nd6k','average']):
                         print(' & ', end="")
                         
                     val=allvalues[factox][hsum][matrixname]['float'][idx]
-                    if (factox == factoxfirst and hsum == hsumfirst) or (num2str(val,1) != num2str(allvalues[factoxfirst][hsumfirst][matrixname]['float'][idx],1)):
+                    if (factox == factoxfirst and hsum == hsumfirst) or (num2str(val/allvalues[factox][hsum][matrixname]['float'][0],1) != num2str(allvalues[factoxfirst][hsumfirst][matrixname]['float'][idx]/allvalues[factoxfirst][hsumfirst][matrixname]['float'][0],1)):
                         val0=allvalues[factox][hsum][matrixname]['float'][0]
                         if idx == 0:
                             print(f' & {val:.1f} ', end="")
@@ -279,38 +279,46 @@ for idxmat,matrixname in enumerate(['CO','dense','nd6k','average']):
         print('\\hline')
         
 ##############################################################
+
+blockstats = {}
+for i, row in df.iterrows():
+    matrixname = row['matrixname']
+    types = row['type']
+    if not matrixname in blockstats:
+        blockstats[matrixname] = {}
+    if not types in blockstats[matrixname]:
+        blockstats[matrixname][types] = {}
+        names=['valvec1vs','valvec2vs','valvec4vs','valvec8vs']
+        for idx,lb in enumerate(names):
+            blockstats[matrixname][types][idx] = float(row[names[idx]])
+
 print('#################################################')
 for factox in factoxtypes:
     for hsum in hsumtypes:
         if factox in allvaluespar and hsum in allvaluespar[factox]:
             print(f'% factox {factox} hsum {hsum}')
-            ticks=''    
-            for idx,lb in enumerate(labelspar):
-                res=''
-                for idxmat,matrixname in enumerate(['CO','dense','nd6k','average']):
-                    
-                    val0=allvalues[factox][hsum][matrixname]['double'][labelsparref+idx]
-                    val=allvaluespar[factox][hsum][matrixname]['double'][idx]
-                    if idx == None:
-                        res += f' ({matrixname} (f64), {val}) '
-                    else:
-                        speedup=val/val0
-                        res+= f' ({matrixname} (f64), {val})[{speedup:.1f}] '
-                    if idx == 0:
-                        ticks += f'{matrixname} (f64)' if ticks == '' else f',{matrixname} (f64)'
-                        
-                    val0=allvalues[factox][hsum][matrixname]['float'][labelsparref+idx]
-                    val=allvaluespar[factox][hsum][matrixname]['float'][idx]
-                    if idx == None:
-                        res += f' ({matrixname} (f32), {val}) '
-                    else:
-                        speedup=val/val0
-                        res+= f' ({matrixname} (f32), {val})[{speedup:.1f}] ' 
-                    if idx == 0:
-                        ticks += f'{matrixname} (f32)' if ticks == '' else f',{matrixname} (f32)'
-                
-                print('\\addplot[draw=color_' + colorspar[idx] +'!65!black, fill=color_' + colorspar[idx] +'!30!white] coordinates { ' + res + ' };')
             
-            print('% ' + ticks)
+            all_matrices=allvaluespar[factox][hsum].keys()
+            
+            content='#'  
+            for types in ['float', 'double']:
+                for idx,lb in enumerate(labels):
+                    if idx >= labelsparref:
+                        content += ' ' + lb + '-bs-' + types
+                        content += ' ' + lb + '-' + types
+            content += '\n'
+            
+            for matrixname in all_matrices:
+                if matrixname != 'average':
+                    for types in ['float', 'double']:
+                        for idx,lb in enumerate(labels):
+                            if idx >= labelsparref:
+                                content+=''                    
+                                content+=' ' + str(blockstats[matrixname][types][idx-labelsparref])
+                                content+=' ' + str(allvalues[factox][hsum][matrixname][types][idx])
+                    content += '\n'
+            
+            print(content)
+                    
     
 
