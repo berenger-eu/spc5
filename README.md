@@ -2,6 +2,9 @@
 
 The official repository is https://gitlab.inria.fr/bramas/spc5
 
+This branch is the first version written in assembly and that works only with AVX512.
+Please go the master branch to have the new version.
+
 ## Overview
 
 This package contains function to compute the SpMV on AVX-512-based architectures (KNL, SKL, CNL).
